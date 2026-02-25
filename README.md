@@ -179,6 +179,15 @@ make typecheck     # Type check with mypy
 make demo          # Run interactive demo
 ```
 
+## Related Projects
+
+This project is part of a broader AI engineering portfolio:
+
+- [ai-assistant](https://github.com/jstilb/ai-assistant) — Production AI agent framework (Kaya) that uses this toolkit for context optimization
+- [mcp-toolkit-server](https://github.com/jstilb/mcp-toolkit-server) — MCP server that integrates with context engineering for tool-use optimization
+- [meaningful_metrics](https://github.com/jstilb/meaningful_metrics) — Evaluation framework for measuring AI effectiveness
+- [modern-rag-pipeline](https://github.com/jstilb/modern-rag-pipeline) — RAG pipeline that applies context engineering principles for retrieval optimization
+
 ## License
 
 MIT
