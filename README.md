@@ -191,10 +191,3 @@ This project is part of a broader AI engineering portfolio:
 ## License
 
 MIT
-
-
-## Related Projects
-
-- [ai-assistant](https://github.com/jstilb/ai-assistant) — Autonomous AI assistant powered by Claude Code
-- [mcp-toolkit-server](https://github.com/jstilb/mcp-toolkit-server) — MCP server toolkit for Claude AI integration
-- [modern-rag-pipeline](https://github.com/jstilb/modern-rag-pipeline) — Production RAG pipeline with hybrid search
