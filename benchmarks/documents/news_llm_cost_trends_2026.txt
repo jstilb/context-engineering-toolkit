@@ -1,0 +1,60 @@
+LLM API Costs Drop 90% Over Three Years: The Economics of Generative AI in 2026
+
+The cost of running large language models has undergone a dramatic decline since the GPT-4 era of 2023. What cost $30 per million input tokens in early 2023 now runs at $2.50 or less for comparable capability models. This 90% reduction over three years has fundamentally changed how organizations architect AI-powered applications.
+
+The Price-Performance Trajectory
+
+In March 2023, OpenAI launched GPT-4 at $30 per million input tokens and $60 per million output tokens. By late 2023, GPT-4 Turbo reduced this to $10 input / $30 output. The launch of GPT-4o in 2024 cut costs to $5 input / $15 output. In 2025, GPT-4o mini brought frontier-class capability to $0.15 input / $0.60 output. In 2026, the latest models from OpenAI, Anthropic, and Google offer GPT-4-class intelligence at $2-3 per million input tokens.
+
+The driving forces behind this deflation are multiple: improved training efficiency, hardware advances (particularly custom silicon), quantization techniques, and competitive pressure among major providers. The entry of open-source models like Llama 3 and Mixtral has created a price floor that commercial providers must compete against.
+
+Current 2026 Pricing Landscape
+
+As of February 2026, enterprise API pricing (per million tokens) for major frontier models:
+
+GPT-4o: $2.50 input / $10.00 output (OpenAI)
+Claude Sonnet: $3.00 input / $15.00 output (Anthropic)
+Claude Haiku: $0.80 input / $4.00 output (Anthropic)
+Gemini 2.0 Flash: $0.075 input / $0.30 output (Google)
+Gemini 2.0 Pro: $1.25 input / $5.00 output (Google)
+Llama 3.3 70B: $0.59 input / $0.79 output (via inference APIs)
+Mistral Large: $2.00 input / $6.00 output (Mistral AI)
+
+Context Caching Economics
+
+A major development in 2025-2026 is widespread adoption of prompt caching, which dramatically changes cost economics for production deployments. With context caching:
+
+- Anthropic (Claude): 90% discount on cached tokens, 5-minute TTL
+- OpenAI (GPT-4o): 50% discount on cached tokens (>1024 tokens)
+- Google (Gemini): 75% discount on cached tokens (>32K tokens minimum)
+
+For applications with stable system prompts and large document contexts, caching transforms the economics. A system with a 50,000-token system prompt hitting Claude 1,000 times per day would pay:
+
+Without caching: $0.15 per request × 1,000 = $150/day ($4,500/month)
+With caching: $0.015 per request × 1,000 = $15/day ($450/month)
+
+This 90% reduction makes context engineering — specifically, optimizing what goes into the stable cached portion versus the variable portion — a high-ROI investment.
+
+The Context Engineering Opportunity
+
+The economics of 2026 LLM deployment create a direct financial incentive for context engineering. Consider a B2B SaaS product processing 100,000 API calls per day:
+
+At 8,000 tokens average per request with naive implementation:
+800M tokens/day × $3.00/million = $2,400/day = $72,000/month
+
+With context engineering achieving 40% token reduction:
+480M tokens/day × $3.00/million = $1,440/day = $43,200/month
+
+Monthly savings: $28,800 — enough to justify a dedicated context engineering team.
+
+The savings multiply further when caching is applied. Organizations with highly cacheable context (legal documents, product catalogs, knowledge bases) report effective token costs 70-90% below list price.
+
+Open Source Disruption
+
+The open-source ecosystem has created a bifurcated market. Organizations with sufficient ML infrastructure increasingly run Llama 3.3 or similar models on-premises, with variable costs near zero and fixed infrastructure costs of $15,000-50,000/month for a GPU cluster capable of serving 100,000 daily requests.
+
+The break-even calculation depends heavily on volume and latency requirements. At 100,000+ daily requests to a frontier model, self-hosting typically becomes cost-competitive. Below that threshold, API pricing remains advantageous due to operational overhead.
+
+Conclusion
+
+The 90% cost reduction over three years has democratized access to frontier AI capability but has also raised the stakes for optimization. At $3/million tokens, an inefficient context window costs real money at scale. Context engineering — the discipline of optimizing what goes into model context — has evolved from a nice-to-have optimization to a business-critical practice for any organization running LLMs at significant volume.

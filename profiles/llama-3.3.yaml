@@ -1,0 +1,39 @@
+# Llama 3.3 Model Context Profile
+# Source: Meta AI documentation and community benchmarks, 2026-02
+model_id: llama-3.3
+display_name: "Llama 3.3 (70B)"
+provider: Meta (self-hosted)
+
+context_window: 128000  # tokens
+
+optimal_compression_ratio: 0.50
+# Rationale: Llama 3.3 shows performance degradation beyond 64K tokens in practice
+# (Lost-in-the-middle effect). Target 50% compression keeps effective context under 64K.
+
+priority_ordering:
+  - system_prompt        # BOS token + system prompt first
+  - task_instructions    # Task before examples
+  - examples             # Few-shot examples close to instruction
+  - retrieved_context    # RAG results
+  - conversation_history # History (Llama struggles with long history)
+  - background_docs      # Background last — high lost-in-middle risk
+
+token_counting_quirks:
+  - tokenizer: llama3-tokenizer  # SentencePiece BPE, NOT tiktoken
+  - approximate_cl100k_ratio: 1.10  # Llama tokens ≈ 10% more than tiktoken for same text
+  - special_tokens: ["<|begin_of_text|>", "<|end_of_text|>", "<|eot_id|>", "<|start_header_id|>"]
+  - role_tokens: "Header tokens add ~5 tokens per message turn"
+  - code_tokenization: "Code tokens often 1.5-2x prose for same character count"
+  - lost_in_middle: true  # Performance drops for content in middle of long contexts
+
+pricing_2026:
+  # Self-hosted pricing (approximate cloud inference)
+  input_per_million: 0.59   # USD (via Groq or similar inference APIs)
+  output_per_million: 0.79  # USD
+  self_hosted_note: "Self-hosted: near-zero marginal cost on owned hardware"
+
+notes: >
+  Llama 3.3 is an open-source model deployable on-premises. Token counting requires
+  the llama3 SentencePiece tokenizer (not tiktoken). Lost-in-the-middle phenomenon
+  is significant — critical information should be placed at the beginning or end of context.
+  For long documents, use sliding window or chunked processing strategies.

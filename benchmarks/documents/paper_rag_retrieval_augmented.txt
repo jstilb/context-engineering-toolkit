@@ -1,0 +1,29 @@
+Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks
+
+Abstract
+
+Large pre-trained language models have been shown to store factual knowledge in their parameters, and achieve state-of-the-art results when fine-tuned on downstream NLP tasks. However, their ability to access and precisely manipulate knowledge is still limited, and hence on knowledge-intensive tasks, their performance lags behind task-specific architectures. Additionally, providing provenance for their decisions and updating their world knowledge remain open research problems. Pre-trained models with a differentiable access mechanism to explicit non-parametric memory can overcome this issue, but have so far been only investigated for extractive downstream tasks. We explore a general-purpose fine-tuning recipe for retrieval-augmented generation (RAG) — models which combine pre-trained parametric and non-parametric memory for language generation. We introduce RAG models where the parametric memory is a pre-trained seq2seq model and the non-parametric memory is a dense vector index of Wikipedia, accessed with a pre-trained neural retriever. We compare two RAG formulations, one which conditions on the same retrieved passages across the whole generated sequence, and another which can use different passages per token. We fine-tune and evaluate our models on a wide range of knowledge-intensive NLP tasks and set the state of the art on three open domain QA tasks, outperforming parametric seq2seq models and task-specific retrieve-and-extract architectures. For language generation tasks, we find that RAG models generate more specific, diverse and factual language than a BART baseline.
+
+1 Introduction
+
+Pre-trained neural language models have been shown to learn a substantial amount of in-depth knowledge from data and achieve impressive results on challenging tasks such as closed-book question answering. Nonetheless, this approach has several key shortcomings: First, during training the model cannot easily expand or revise their memory. Second, they can't straightforwardly provide provenance for their answers. Third, they may generate factually wrong answers with high confidence.
+
+The use of a retrieval-augmented model allows language models to access to a large corpus of text documents at inference time. Unlike parametric memory alone, a retrieval-augmented model can have its non-parametric memory easily updated without retraining the model. Furthermore, retrieval-augmented models can provide provenance for their answers by pointing to the specific retrieved passages that informed the generation.
+
+2 Methods
+
+Our RAG models use a dense retriever DPR (Karpukhin et al., 2020) to retrieve relevant documents from Wikipedia, and then a BART (Lewis et al., 2020) seq2seq model to generate answers conditioned on the question and retrieved documents.
+
+Formally, let us use x to denote the input sequence and y to denote the target sequence. The retriever p_η(z|x) returns top-K truncated distributions over text passages z given query x. The generator p_θ(y_i|x, z, y_{1:i-1}) generates a current token based on a context of the previous i-1 tokens, the original input x and a retrieved passage z.
+
+We consider two models that marginalize over the latent documents in different ways: RAG-Sequence uses the same document to predict each target token. RAG-Token can predict each target token based on a different document.
+
+3 Results
+
+RAG achieves state-of-the-art results on Natural Questions, TriviaQA, and WebQuestions open domain QA benchmarks with 44.5%, 56.8%, and 45.5% exact match respectively. RAG is comparable to state-of-the-art extractive models on TriviaQA despite being a generative model. On FEVER fact verification, RAG achieves 71.8% label accuracy. On the MS-MARCO abstractive QA dataset, RAG achieves a BLEU-1 of 45.1 and a ROUGE-L of 43.1.
+
+The results show that combining parametric knowledge (encoded in model parameters) with non-parametric knowledge (Wikipedia passages retrieved at inference time) provides complementary benefits that exceed either approach alone.
+
+4 Conclusion
+
+We presented RAG, a general-purpose recipe for combining parametric and non-parametric memory for NLP. RAG models achieve state of the art results on knowledge-intensive tasks including open-domain QA and fact verification. Future directions include extending RAG to multilingual settings and exploring different retrieval approaches beyond dense passage retrieval.

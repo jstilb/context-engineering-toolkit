@@ -1,0 +1,227 @@
+"""
+transformer.py — Minimal Transformer implementation in PyTorch
+
+This file implements a complete Transformer encoder-decoder architecture
+following Vaswani et al. (2017) "Attention Is All You Need".
+
+Key components:
+- MultiHeadAttention: Parallel attention heads with scaled dot-product
+- PositionwiseFeedForward: Two-layer MLP applied position-wise
+- PositionalEncoding: Sinusoidal position embeddings
+- TransformerEncoderLayer: Self-attention + FFN with residual connections
+- TransformerDecoderLayer: Self-attention + cross-attention + FFN
+- Transformer: Complete encoder-decoder stack
+
+References:
+  Vaswani, A., et al. (2017). Attention Is All You Need. NeurIPS 2017.
+  https://arxiv.org/abs/1706.03762
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Optional
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class MultiHeadAttention(nn.Module):
+    """Multi-head scaled dot-product attention.
+
+    Allows the model to jointly attend to information from different
+    representation subspaces at different positions.
+
+    Args:
+        d_model: Dimension of the model (input/output size).
+        num_heads: Number of parallel attention heads.
+        dropout: Dropout probability on attention weights.
+
+    Raises:
+        ValueError: If d_model is not divisible by num_heads.
+    """
+
+    def __init__(self, d_model: int, num_heads: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        if d_model % num_heads != 0:
+            raise ValueError(
+                f"d_model ({d_model}) must be divisible by num_heads ({num_heads})"
+            )
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads  # Dimension per head
+
+        # Linear projections for Q, K, V and output
+        self.w_q = nn.Linear(d_model, d_model, bias=False)
+        self.w_k = nn.Linear(d_model, d_model, bias=False)
+        self.w_v = nn.Linear(d_model, d_model, bias=False)
+        self.w_o = nn.Linear(d_model, d_model, bias=False)
+
+        self.dropout = nn.Dropout(p=dropout)
+
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Compute multi-head attention.
+
+        Args:
+            query: Query tensor of shape (batch, seq_len_q, d_model).
+            key: Key tensor of shape (batch, seq_len_k, d_model).
+            value: Value tensor of shape (batch, seq_len_k, d_model).
+            mask: Optional mask of shape (batch, 1, seq_len_q, seq_len_k).
+                  Zero values indicate positions to mask out.
+
+        Returns:
+            Tuple of (output, attention_weights) where output has shape
+            (batch, seq_len_q, d_model) and attention_weights has shape
+            (batch, num_heads, seq_len_q, seq_len_k).
+        """
+        batch_size = query.size(0)
+
+        # Linear projections and reshape for multi-head
+        # Shape: (batch, seq_len, d_model) -> (batch, num_heads, seq_len, d_k)
+        q = self.w_q(query).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        k = self.w_k(key).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        v = self.w_v(value).view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+
+        # Scaled dot-product attention
+        # Scale by sqrt(d_k) to prevent vanishing gradients in softmax
+        scale = math.sqrt(self.d_k)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / scale  # (batch, heads, q_len, k_len)
+
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+
+        attention_weights = F.softmax(scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
+
+        # Apply attention to values
+        context = torch.matmul(attention_weights, v)  # (batch, heads, q_len, d_k)
+
+        # Concatenate heads and project
+        context = context.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
+        output = self.w_o(context)
+
+        return output, attention_weights
+
+
+class PositionwiseFeedForward(nn.Module):
+    """Position-wise feed-forward network.
+
+    Two linear transformations with ReLU activation in between.
+    Applied identically to each position separately and independently.
+
+    Args:
+        d_model: Input and output dimension.
+        d_ff: Inner dimension (typically 4 * d_model).
+        dropout: Dropout probability.
+    """
+
+    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.linear1 = nn.Linear(d_model, d_ff)
+        self.linear2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(p=dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply feed-forward network.
+
+        Args:
+            x: Input of shape (batch, seq_len, d_model).
+
+        Returns:
+            Output of shape (batch, seq_len, d_model).
+        """
+        return self.linear2(self.dropout(F.relu(self.linear1(x))))
+
+
+class PositionalEncoding(nn.Module):
+    """Sinusoidal positional encoding.
+
+    Adds position information to token embeddings using sine and cosine
+    functions of different frequencies. No parameters to learn.
+
+    The encoding is defined as:
+        PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
+        PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+
+    Args:
+        d_model: Embedding dimension.
+        max_seq_len: Maximum sequence length.
+        dropout: Dropout probability.
+    """
+
+    def __init__(self, d_model: int, max_seq_len: int = 5000, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        # Build sinusoidal encoding table
+        pe = torch.zeros(max_seq_len, d_model)
+        position = torch.arange(0, max_seq_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2, dtype=torch.float) * (-math.log(10000.0) / d_model)
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)  # Shape: (1, max_seq_len, d_model)
+
+        # Register as buffer (not a parameter, but part of model state)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Add positional encoding to input embeddings.
+
+        Args:
+            x: Token embeddings of shape (batch, seq_len, d_model).
+
+        Returns:
+            Embeddings with positional encoding added.
+        """
+        x = x + self.pe[:, :x.size(1)]  # type: ignore[index]
+        return self.dropout(x)
+
+
+# Example usage
+if __name__ == "__main__":
+    # Model configuration matching the "base" model in the paper
+    d_model = 512
+    num_heads = 8
+    d_ff = 2048
+    num_encoder_layers = 6
+    num_decoder_layers = 6
+    vocab_size = 37000  # WMT English-German vocabulary
+    max_seq_len = 512
+    dropout = 0.1
+
+    print(f"Transformer Base Model")
+    print(f"  d_model: {d_model}")
+    print(f"  Heads: {num_heads}")
+    print(f"  d_k (per head): {d_model // num_heads}")
+    print(f"  FFN dimension: {d_ff}")
+    print(f"  Encoder layers: {num_encoder_layers}")
+    print(f"  Decoder layers: {num_decoder_layers}")
+
+    # Multi-head attention
+    mha = MultiHeadAttention(d_model=d_model, num_heads=num_heads)
+    param_count_mha = sum(p.numel() for p in mha.parameters())
+    print(f"\nMultiHeadAttention parameters: {param_count_mha:,}")
+
+    # Test forward pass
+    batch_size = 4
+    seq_len = 64
+    x = torch.randn(batch_size, seq_len, d_model)
+    output, attn_weights = mha(x, x, x)
+    print(f"Input shape: {x.shape}")
+    print(f"Output shape: {output.shape}")
+    print(f"Attention weights shape: {attn_weights.shape}")
+
+    # Positional encoding
+    pe = PositionalEncoding(d_model=d_model)
+    x_with_pe = pe(x)
+    print(f"\nWith positional encoding: {x_with_pe.shape}")

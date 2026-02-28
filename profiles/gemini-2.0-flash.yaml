@@ -1,0 +1,43 @@
+# Gemini 2.0 Flash Model Context Profile
+# Source: Google DeepMind documentation, 2026-02
+model_id: gemini-2.0-flash
+display_name: "Gemini 2.0 Flash"
+provider: Google
+
+context_window: 1000000  # 1 million tokens
+
+optimal_compression_ratio: 0.20
+# Rationale: Gemini 2.0 Flash's 1M window allows very high-volume document ingestion.
+# Compression to 20% is optimal when processing entire codebases or large document sets.
+# For shorter documents (<100K tokens), no compression needed.
+
+priority_ordering:
+  - system_prompt        # System instructions first
+  - task_instructions    # Task specification
+  - primary_documents    # Main reference documents (Gemini handles long docs well)
+  - retrieved_context    # RAG augmentation
+  - conversation_history # History
+  - background_docs      # Background material (can include all given 1M window)
+  - examples             # Few-shot examples
+
+token_counting_quirks:
+  - tokenizer: gemini-tokenizer  # SentencePiece, different from OpenAI/Anthropic
+  - approximate_cl100k_ratio: 0.95  # Gemini tokens ≈ 5% fewer than tiktoken
+  - multimodal_support: "Audio, video, images all count toward context window"
+  - audio_tokens: "~32 tokens per second of audio"
+  - video_tokens: "~258 tokens per second of video (1fps)"
+  - image_tokens: "~258 tokens per image"
+  - grounding_overhead: "~500 tokens for Google Search grounding"
+  - cached_content_minimum: 32768  # Tokens minimum for context caching
+
+pricing_2026:
+  input_per_million: 0.075   # USD (under 128K tokens)
+  input_per_million_long: 0.15  # USD (over 128K tokens)
+  output_per_million: 0.30  # USD
+  cached_input_per_million: 0.01875  # 75% discount on cached content
+
+notes: >
+  Gemini 2.0 Flash offers the largest context window (1M tokens) at competitive pricing.
+  Context caching requires minimum 32K tokens and provides 75% cost reduction on cached
+  portions. Ideal for whole-codebase analysis, long document Q&A, and video understanding.
+  Multimodal content (audio/video/images) consumes significant token budget.

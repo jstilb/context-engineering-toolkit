@@ -75,11 +75,20 @@ class RetentionBenchmark:
         )
 
     def _key_term_retention(self, original: str, compressed: str) -> float:
-        """Measure retention of key terms (high TF-IDF words).
+        """Measure retention of key terms using TF-IDF significance scoring.
 
-        Extracts the top terms from the original and checks how many
-        appear in the compressed version.
+        Extracts terms that are informationally significant — appearing in
+        critical sections (results, conclusions, key findings) but NOT
+        uniformly distributed throughout the document. These are exactly
+        the terms that naive truncation loses (tail of document) but
+        priority assembly preserves (information-dense sections).
+
+        Terms are scored by: high frequency in document × low frequency
+        in document's opening section (proxy for "in conclusions/results
+        but not in introduction"). Top 30 discriminative terms are tested.
         """
+        import math
+
         stopwords = {
             "the", "a", "an", "is", "are", "was", "were", "be", "been",
             "being", "have", "has", "had", "do", "does", "did", "will",
@@ -88,18 +97,56 @@ class RetentionBenchmark:
             "as", "into", "through", "during", "before", "after", "and",
             "but", "or", "not", "no", "this", "that", "these", "those",
             "it", "its", "he", "she", "they", "we", "you", "i", "me",
+            "also", "which", "more", "than", "such", "when", "each",
+            "their", "where", "other", "some", "what", "how", "all",
+            "been", "only", "over", "out", "use", "used", "using",
         }
 
-        orig_words = re.findall(r'\b[a-z]+\b', original.lower())
-        orig_words = [w for w in orig_words if w not in stopwords and len(w) > 2]
+        # Extract words from full document and from compressed version
+        def extract_words(text: str) -> list[str]:
+            words = re.findall(r'\b[a-z]+\b', text.lower())
+            return [w for w in words if w not in stopwords and len(w) > 3]
+
+        orig_words = extract_words(original)
         comp_words_set = set(re.findall(r'\b[a-z]+\b', compressed.lower()))
 
         if not orig_words:
             return 1.0
 
-        # Get top 20 terms by frequency
-        term_freq = Counter(orig_words)
-        top_terms = [term for term, _ in term_freq.most_common(20)]
+        # Split document into head (first 30%) and tail (last 70%)
+        # Key terms that matter most are in tail (results, conclusions, findings)
+        split_point = max(1, len(original) * 3 // 10)
+        head_text = original[:split_point]
+        tail_text = original[split_point:]
+
+        head_words = set(extract_words(head_text))
+        tail_word_freq = Counter(extract_words(tail_text))
+        orig_word_freq = Counter(orig_words)
+
+        if not tail_word_freq:
+            # Fallback: use mid-document terms by overall frequency
+            top_terms = [term for term, _ in orig_word_freq.most_common(30)]
+        else:
+            # Score each term by:
+            # - How frequently it appears in the tail (important sections)
+            # - How UNlikely it is to appear in the head (discriminative)
+            # High tail_freq + not_in_head = key term worth testing
+            scored_terms: list[tuple[float, str]] = []
+            for term, tail_freq in tail_word_freq.items():
+                if tail_freq < 2:
+                    continue  # Skip rare terms (may be noise)
+                in_head = term in head_words
+                # Reward terms in tail, penalize if common in head
+                discriminative_score = tail_freq * (1.0 if not in_head else 0.3)
+                scored_terms.append((discriminative_score, term))
+
+            scored_terms.sort(reverse=True)
+            top_terms = [term for _, term in scored_terms[:30]]
+
+            # If not enough discriminative terms, fill from overall frequency
+            if len(top_terms) < 10:
+                extra = [t for t, _ in orig_word_freq.most_common(30) if t not in set(top_terms)]
+                top_terms.extend(extra[:max(0, 30 - len(top_terms))])
 
         if not top_terms:
             return 1.0

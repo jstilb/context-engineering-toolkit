@@ -1,0 +1,40 @@
+# Claude Sonnet Model Context Profile
+# Source: Anthropic documentation, 2026-02
+model_id: claude-sonnet
+display_name: "Claude Sonnet (claude-sonnet-4)"
+provider: Anthropic
+
+context_window: 200000  # tokens
+
+optimal_compression_ratio: 0.35
+# Rationale: Claude's 200K window is reliable end-to-end, but retrieval quality
+# degrades for highly sparse documents. Target 35% compression keeps density high.
+
+priority_ordering:
+  - system_prompt          # Claude prioritizes system prompt heavily — always first
+  - task_instructions      # Specific task details before context
+  - retrieved_context      # RAG results
+  - conversation_history   # Earlier turns with recency weighting
+  - background_docs        # Reference material
+  - examples               # Few-shot examples near end of context
+
+token_counting_quirks:
+  - tokenizer: claude-tokenizer  # Anthropic's custom BPE, NOT cl100k_base
+  - approximate_cl100k_ratio: 1.05  # Claude tokens ≈ 5% more than tiktoken for same text
+  - vision_tokens: "~1600 tokens per image (varies by resolution)"
+  - tool_use_overhead: "~200-400 tokens per tool definition"
+  - prompt_caching_minimum: 1024  # Minimum tokens for cache write
+  - cache_write_overhead: "25% surcharge on cached prompt tokens"
+  - xml_tag_tokens: "Claude is sensitive to XML structure; tags count as tokens"
+
+pricing_2026:
+  input_per_million: 3.00   # USD
+  output_per_million: 15.00  # USD
+  cached_input_per_million: 0.30  # 90% discount on cache hits (after 5-min TTL)
+  cache_write_per_million: 3.75   # 25% surcharge for writing to cache
+
+notes: >
+  Claude has excellent long-context performance (200K window). Supports prompt caching
+  with 5-minute and 1-hour TTLs. KV-cache ordering: place frequently reused content
+  (system prompts, tools, documents) before variable content (user queries).
+  Claude is particularly good at tasks requiring understanding of the full document.

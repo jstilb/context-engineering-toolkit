@@ -1,0 +1,36 @@
+# GPT-4o Model Context Profile
+# Source: OpenAI documentation, 2026-02
+model_id: gpt-4o
+display_name: "GPT-4o"
+provider: OpenAI
+
+context_window: 128000  # tokens
+
+optimal_compression_ratio: 0.45
+# Rationale: GPT-4o handles up to 128K tokens but performance degrades near limits.
+# Testing shows optimal results at 40-50% of max for multi-turn conversations.
+
+priority_ordering:
+  - system_prompt      # Always first — GPT-4o is sensitive to system prompt position
+  - recent_history     # Recency bias: recent turns matter most
+  - retrieved_context  # RAG results go before older history
+  - background_docs    # Background/reference material last
+  - examples           # Few-shot examples placed near task
+
+token_counting_quirks:
+  - tokenizer: cl100k_base  # tiktoken encoding (same as GPT-4)
+  - image_tokens: "85 base + 170 per 512x512 tile (high detail)"
+  - tool_definitions: "~100-300 tokens per tool definition; counted against input"
+  - system_prompt_overhead: 4  # tokens added per message by API
+  - special_tokens: ["<|im_start|>", "<|im_end|>", "<|endoftext|>"]
+  - json_mode_overhead: "~50 tokens for JSON schema enforcement"
+
+pricing_2026:
+  input_per_million: 2.50   # USD
+  output_per_million: 10.00  # USD
+  cached_input_per_million: 1.25  # 50% discount on cached prompts
+
+notes: >
+  GPT-4o supports multimodal input (text + images). Context caching (prompt caching)
+  available via API for prompts >1024 tokens. Best practice: place static content
+  (system prompts, instructions) at the beginning for cache hit optimization.
