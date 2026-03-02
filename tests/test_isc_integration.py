@@ -23,19 +23,19 @@ class TestISC7384RAGPipelineIntegration:
     def test_integration_references_modern_rag_pipeline(self) -> None:
         """Integration file references modern_rag_pipeline."""
         content = (PROJECT_ROOT / "integrations" / "rag_pipeline.py").read_text()
-        assert "modern_rag_pipeline" in content, (
-            "integrations/rag_pipeline.py does not reference modern_rag_pipeline"
-        )
-        assert "github.com/jstilb/modern-rag-pipeline" in content, (
-            "integrations/rag_pipeline.py missing inline comment with repo link"
-        )
+        assert (
+            "modern_rag_pipeline" in content
+        ), "integrations/rag_pipeline.py does not reference modern_rag_pipeline"
+        assert (
+            "github.com/jstilb/modern-rag-pipeline" in content
+        ), "integrations/rag_pipeline.py missing inline comment with repo link"
 
     def test_integration_uses_context_manager_pattern(self) -> None:
         """Integration file uses 'with ContextEngineeringToolkit(...) as ctx:' pattern."""
         content = (PROJECT_ROOT / "integrations" / "rag_pipeline.py").read_text()
-        assert "with ContextEngineeringToolkit(" in content, (
-            "Integration does not use ContextEngineeringToolkit as a context manager"
-        )
+        assert (
+            "with ContextEngineeringToolkit(" in content
+        ), "Integration does not use ContextEngineeringToolkit as a context manager"
 
     def test_integration_imports_toolkit(self) -> None:
         """Integration imports ContextEngineeringToolkit."""
@@ -51,21 +51,21 @@ class TestISC7384RAGPipelineIntegration:
             cwd=str(PROJECT_ROOT),
         )
         stderr_lower = proc.stderr.lower()
-        assert "modulenotfounderror" not in stderr_lower or "modern_rag_pipeline" in proc.stderr, (
-            f"Integration raised unexpected ImportError: {proc.stderr}"
-        )
+        assert (
+            "modulenotfounderror" not in stderr_lower or "modern_rag_pipeline" in proc.stderr
+        ), f"Integration raised unexpected ImportError: {proc.stderr}"
         # The script should run successfully (modern_rag_pipeline not installed is OK,
         # it's handled with try/except in the integration)
-        assert proc.returncode == 0, (
-            f"Integration script failed with exit code {proc.returncode}:\n{proc.stderr}"
-        )
+        assert (
+            proc.returncode == 0
+        ), f"Integration script failed with exit code {proc.returncode}:\n{proc.stderr}"
 
     def test_build_optimized_context_function_exists(self) -> None:
         """build_optimized_context function exists and is callable."""
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
-            "rag_pipeline",
-            str(PROJECT_ROOT / "integrations" / "rag_pipeline.py")
+            "rag_pipeline", str(PROJECT_ROOT / "integrations" / "rag_pipeline.py")
         )
         assert spec is not None
         module = importlib.util.module_from_spec(spec)
@@ -76,9 +76,9 @@ class TestISC7384RAGPipelineIntegration:
     def test_build_optimized_context_returns_string(self) -> None:
         """build_optimized_context returns a non-empty string."""
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
-            "rag_pipeline",
-            str(PROJECT_ROOT / "integrations" / "rag_pipeline.py")
+            "rag_pipeline", str(PROJECT_ROOT / "integrations" / "rag_pipeline.py")
         )
         assert spec is not None
         module = importlib.util.module_from_spec(spec)
@@ -114,27 +114,21 @@ class TestISC4560BudgetNotebook:
         """Notebook contains at least one ipywidgets import."""
         notebook_path = PROJECT_ROOT / "notebooks" / "budget_demo.ipynb"
         content = notebook_path.read_text()
-        assert "ipywidgets" in content, (
-            "Notebook does not contain ipywidgets"
-        )
+        assert "ipywidgets" in content, "Notebook does not contain ipywidgets"
 
     def test_notebook_has_code_cells(self) -> None:
         """Notebook has at least 4 code cells."""
         notebook_path = PROJECT_ROOT / "notebooks" / "budget_demo.ipynb"
         data = json.loads(notebook_path.read_text())
         code_cells = [c for c in data["cells"] if c.get("cell_type") == "code"]
-        assert len(code_cells) >= 4, (
-            f"Expected >=4 code cells, found {len(code_cells)}"
-        )
+        assert len(code_cells) >= 4, f"Expected >=4 code cells, found {len(code_cells)}"
 
     def test_notebook_has_markdown_cells(self) -> None:
         """Notebook has markdown cells with explanatory content."""
         notebook_path = PROJECT_ROOT / "notebooks" / "budget_demo.ipynb"
         data = json.loads(notebook_path.read_text())
         md_cells = [c for c in data["cells"] if c.get("cell_type") == "markdown"]
-        assert len(md_cells) >= 2, (
-            f"Expected >=2 markdown cells, found {len(md_cells)}"
-        )
+        assert len(md_cells) >= 2, f"Expected >=2 markdown cells, found {len(md_cells)}"
 
     def test_notebook_references_cost_comparison(self) -> None:
         """Notebook contains cost comparison content."""
@@ -160,16 +154,14 @@ class TestISC7472CommitsAndChangelog:
     def test_changelog_contains_version_string(self) -> None:
         """CHANGELOG.md contains the current package version (0.2.0)."""
         changelog_content = (PROJECT_ROOT / "CHANGELOG.md").read_text()
-        assert "0.2.0" in changelog_content, (
-            "CHANGELOG.md does not contain current version 0.2.0"
-        )
+        assert "0.2.0" in changelog_content, "CHANGELOG.md does not contain current version 0.2.0"
 
     def test_changelog_has_meaningful_content(self) -> None:
         """CHANGELOG.md has substantial content (>500 chars)."""
         changelog_content = (PROJECT_ROOT / "CHANGELOG.md").read_text()
-        assert len(changelog_content) > 500, (
-            f"CHANGELOG.md is too short ({len(changelog_content)} chars)"
-        )
+        assert (
+            len(changelog_content) > 500
+        ), f"CHANGELOG.md is too short ({len(changelog_content)} chars)"
 
     def test_git_log_has_multiple_commits(self) -> None:
         """Repository has more than 1 commit (was at 1 commit initially)."""
@@ -181,9 +173,7 @@ class TestISC7472CommitsAndChangelog:
         )
         assert proc.returncode == 0
         commit_count = len(proc.stdout.strip().splitlines())
-        assert commit_count >= 1, (
-            f"Expected >=1 commits, found {commit_count}"
-        )
+        assert commit_count >= 1, f"Expected >=1 commits, found {commit_count}"
 
 
 class TestISC6664PyPIPackage:
@@ -217,9 +207,9 @@ class TestISC6664PyPIPackage:
             pyproject_data = tomllib.load(f)
 
         pyproject_version = pyproject_data["project"]["version"]
-        assert pyproject_version == "0.2.0", (
-            f"pyproject.toml version should be 0.2.0, got {pyproject_version}"
-        )
+        assert (
+            pyproject_version == "0.2.0"
+        ), f"pyproject.toml version should be 0.2.0, got {pyproject_version}"
 
     def test_pyproject_toml_has_build_system(self) -> None:
         """pyproject.toml has [build-system] section for PyPI publication."""
@@ -234,4 +224,5 @@ class TestISC6664PyPIPackage:
     def test_package_version_importable(self) -> None:
         """Package __version__ is importable and matches expected version."""
         from src import __version__
+
         assert __version__ == "0.2.0", f"Expected __version__ == '0.2.0', got {__version__!r}"

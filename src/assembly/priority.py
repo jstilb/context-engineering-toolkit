@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 from src.tokens.counter import ModelFamily, TokenCounter
@@ -11,11 +11,11 @@ from src.tokens.counter import ModelFamily, TokenCounter
 class ContextPriority(Enum):
     """Priority levels for context items."""
 
-    REQUIRED = 0     # Must be included (system prompt, instructions)
-    HIGH = 1         # Strongly preferred (most relevant results)
-    MEDIUM = 2       # Helpful context (supporting info)
-    LOW = 3          # Nice to have (background, examples)
-    OPTIONAL = 4     # Include only if space remains
+    REQUIRED = 0  # Must be included (system prompt, instructions)
+    HIGH = 1  # Strongly preferred (most relevant results)
+    MEDIUM = 2  # Helpful context (supporting info)
+    LOW = 3  # Nice to have (background, examples)
+    OPTIONAL = 4  # Include only if space remains
 
 
 @dataclass(frozen=True)
@@ -153,9 +153,7 @@ class PriorityAssembler:
             included.append(item)
 
         # Phase 2: Sort optional items by priority, then relevance
-        optional.sort(
-            key=lambda i: (i.priority.value, -i.relevance_score)
-        )
+        optional.sort(key=lambda i: (i.priority.value, -i.relevance_score))
 
         for item in optional:
             item_tokens = self._counter.count(item.content).token_count

@@ -1,9 +1,7 @@
 """Tests for compression modules."""
 
-import pytest
-
 from src.compression.extractive import ExtractiveSummarizer, ScoredSentence
-from src.compression.truncation import SmartTruncator, TruncationStrategy, TruncationResult
+from src.compression.truncation import SmartTruncator, TruncationResult, TruncationStrategy
 from src.tokens.counter import ModelFamily, TokenCounter
 
 
@@ -99,7 +97,6 @@ class TestExtractiveSummarizer:
             # Average score of first third should be >= average of last third
             n = len(scored) // 3
             first_avg = sum(s.score for s in scored[:n]) / n
-            last_avg = sum(s.score for s in scored[-n:]) / n
             # Position bias means first sentences get a boost
             # This is a soft test -- not always strictly true
             assert first_avg > 0  # At minimum, scores are positive

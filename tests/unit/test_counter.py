@@ -1,7 +1,7 @@
 """Tests for the token counter module."""
 
-import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from src.tokens.counter import ModelFamily, TokenCount, TokenCounter
 

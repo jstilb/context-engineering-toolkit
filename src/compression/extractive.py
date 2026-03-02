@@ -49,12 +49,23 @@ class ExtractiveSummarizer:
         """
         # Protect common abbreviations
         protected = text
-        abbreviations = ["Mr.", "Mrs.", "Dr.", "Prof.", "Inc.", "Ltd.", "vs.", "etc.", "e.g.", "i.e."]
+        abbreviations = [
+            "Mr.",
+            "Mrs.",
+            "Dr.",
+            "Prof.",
+            "Inc.",
+            "Ltd.",
+            "vs.",
+            "etc.",
+            "e.g.",
+            "i.e.",
+        ]
         for abbr in abbreviations:
             protected = protected.replace(abbr, abbr.replace(".", "<DOT>"))
 
         # Split on sentence-ending punctuation followed by whitespace
-        sentences = re.split(r'(?<=[.!?])\s+', protected)
+        sentences = re.split(r"(?<=[.!?])\s+", protected)
 
         # Restore abbreviations
         sentences = [s.replace("<DOT>", ".").strip() for s in sentences]
@@ -94,7 +105,7 @@ class ExtractiveSummarizer:
         num_sentences = len(sentences)
         scored: list[ScoredSentence] = []
 
-        for i, (sentence, words) in enumerate(zip(sentences, sentence_words)):
+        for i, (sentence, words) in enumerate(zip(sentences, sentence_words, strict=False)):
             if not words:
                 continue
 
@@ -122,9 +133,9 @@ class ExtractiveSummarizer:
 
             # Proper noun / number bonus
             entity_score = 1.0
-            if re.search(r'\b[A-Z][a-z]+\b', sentence):
+            if re.search(r"\b[A-Z][a-z]+\b", sentence):
                 entity_score += 0.1
-            if re.search(r'\b\d+\.?\d*%?\b', sentence):
+            if re.search(r"\b\d+\.?\d*%?\b", sentence):
                 entity_score += 0.1
 
             final_score = tf_idf_score * length_score * position_score * entity_score
@@ -217,14 +228,69 @@ class ExtractiveSummarizer:
     def _tokenize_words(text: str) -> list[str]:
         """Simple word tokenization with lowercasing and stopword removal."""
         stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "be", "been",
-            "being", "have", "has", "had", "do", "does", "did", "will",
-            "would", "could", "should", "may", "might", "shall", "can",
-            "to", "of", "in", "for", "on", "with", "at", "by", "from",
-            "as", "into", "through", "during", "before", "after", "and",
-            "but", "or", "not", "no", "this", "that", "these", "those",
-            "it", "its", "he", "she", "they", "we", "you", "i", "me",
-            "my", "your", "his", "her", "our", "their",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "shall",
+            "can",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+            "and",
+            "but",
+            "or",
+            "not",
+            "no",
+            "this",
+            "that",
+            "these",
+            "those",
+            "it",
+            "its",
+            "he",
+            "she",
+            "they",
+            "we",
+            "you",
+            "i",
+            "me",
+            "my",
+            "your",
+            "his",
+            "her",
+            "our",
+            "their",
         }
-        words = re.findall(r'\b[a-z]+\b', text.lower())
+        words = re.findall(r"\b[a-z]+\b", text.lower())
         return [w for w in words if w not in stopwords and len(w) > 1]

@@ -11,9 +11,9 @@ from src.tokens.counter import ModelFamily, TokenCounter
 class TruncationStrategy(Enum):
     """Where to truncate content."""
 
-    HEAD = "head"       # Keep beginning, cut end
-    TAIL = "tail"       # Keep end, cut beginning
-    MIDDLE = "middle"   # Keep beginning and end, cut middle
+    HEAD = "head"  # Keep beginning, cut end
+    TAIL = "tail"  # Keep end, cut beginning
+    MIDDLE = "middle"  # Keep beginning and end, cut middle
 
 
 @dataclass(frozen=True)

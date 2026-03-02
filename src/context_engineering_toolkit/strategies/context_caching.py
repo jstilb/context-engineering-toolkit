@@ -150,7 +150,7 @@ class ContextCaching:
             estimated_cache_savings_ratio=cache_savings_ratio,
         )
 
-    def with_prefix(self, additional_stable: str) -> "ContextCaching":
+    def with_prefix(self, additional_stable: str) -> ContextCaching:
         """Return a new ContextCaching with additional stable content appended.
 
         Useful for building up a stable prefix incrementally (e.g., adding

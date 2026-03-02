@@ -7,8 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 PROJECT_ROOT = Path(__file__).parent.parent
 BENCHMARKS_DIR = PROJECT_ROOT / "benchmarks"
 DOCUMENTS_DIR = BENCHMARKS_DIR / "documents"
@@ -21,7 +19,9 @@ class TestISC1192BenchmarkDocuments:
         """Exactly 10 benchmark documents exist in benchmarks/documents/."""
         assert DOCUMENTS_DIR.exists(), f"benchmarks/documents/ not found at {DOCUMENTS_DIR}"
         docs = sorted(DOCUMENTS_DIR.glob("*.txt"))
-        assert len(docs) == 10, f"Expected 10 documents, found {len(docs)}: {[d.name for d in docs]}"
+        assert (
+            len(docs) == 10
+        ), f"Expected 10 documents, found {len(docs)}: {[d.name for d in docs]}"
 
     def test_three_categories_present(self) -> None:
         """Documents span at least 3 categories (paper, news, code)."""
@@ -70,7 +70,12 @@ class TestISC6160BenchmarkHeadlineStat:
         """run_benchmark.py executes successfully and writes valid JSON output."""
         result_file = tmp_path / "results.json"
         proc = subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
             text=True,
         )
@@ -81,7 +86,12 @@ class TestISC6160BenchmarkHeadlineStat:
         """Priority assembly key-term retention ratio is >= 2.1x vs naive truncation."""
         result_file = tmp_path / "results.json"
         subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
         )
         results = json.loads(result_file.read_text())
@@ -96,7 +106,12 @@ class TestISC6160BenchmarkHeadlineStat:
         """Benchmark results cover exactly 10 documents."""
         result_file = tmp_path / "results.json"
         subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
         )
         results = json.loads(result_file.read_text())
@@ -107,7 +122,12 @@ class TestISC6160BenchmarkHeadlineStat:
         """Benchmark results span >=3 document categories."""
         result_file = tmp_path / "results.json"
         subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
         )
         results = json.loads(result_file.read_text())
@@ -117,7 +137,12 @@ class TestISC6160BenchmarkHeadlineStat:
         """verify_headline.py exits 0 when ratio >= 2.1x."""
         result_file = tmp_path / "results.json"
         subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
         )
         proc = subprocess.run(
@@ -125,27 +150,35 @@ class TestISC6160BenchmarkHeadlineStat:
             capture_output=True,
             text=True,
         )
-        assert proc.returncode == 0, (
-            f"verify_headline.py failed: {proc.stdout}\n{proc.stderr}"
-        )
+        assert proc.returncode == 0, f"verify_headline.py failed: {proc.stdout}\n{proc.stderr}"
         assert "CONFIRMED" in proc.stdout
 
     def test_each_document_has_three_method_scores(self, tmp_path: Path) -> None:
         """Each benchmark document has scores for all 3 methods and 3 metrics."""
         result_file = tmp_path / "results.json"
         subprocess.run(
-            [sys.executable, str(BENCHMARKS_DIR / "run_benchmark.py"), "--output", str(result_file)],
+            [
+                sys.executable,
+                str(BENCHMARKS_DIR / "run_benchmark.py"),
+                "--output",
+                str(result_file),
+            ],
             capture_output=True,
         )
         results = json.loads(result_file.read_text())
         required_methods = {"naive_truncation", "extractive_compression", "priority_assembly"}
-        required_metrics = {"key_term_retention", "entity_retention", "sentence_coverage", "overall_score"}
+        required_metrics = {
+            "key_term_retention",
+            "entity_retention",
+            "sentence_coverage",
+            "overall_score",
+        }
 
         for doc in results["documents"]:
             methods = set(doc["methods"].keys())
             assert methods == required_methods, f"Missing methods in {doc['filename']}: {methods}"
             for method, scores in doc["methods"].items():
                 metric_keys = set(scores.keys())
-                assert required_metrics.issubset(metric_keys), (
-                    f"Missing metrics for {method} in {doc['filename']}"
-                )
+                assert required_metrics.issubset(
+                    metric_keys
+                ), f"Missing metrics for {method} in {doc['filename']}"

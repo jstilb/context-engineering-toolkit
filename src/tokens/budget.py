@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
 class BudgetPriority(Enum):
     """Priority levels for context sections."""
 
-    CRITICAL = 0   # System prompt, tool definitions — always included
-    HIGH = 1       # Most relevant context, recent messages
-    MEDIUM = 2     # Supporting context, earlier messages
-    LOW = 3        # Nice-to-have, background info
+    CRITICAL = 0  # System prompt, tool definitions — always included
+    HIGH = 1  # Most relevant context, recent messages
+    MEDIUM = 2  # Supporting context, earlier messages
+    LOW = 3  # Nice-to-have, background info
 
 
 @dataclass
@@ -82,12 +82,11 @@ class BudgetReport:
     def summary(self) -> str:
         """Human-readable budget summary."""
         lines = [
-            f"Token Budget Report",
-            f"  Total: {self.total_tokens:,} / {self.total_budget:,} "
-            f"({self.utilization:.1%})",
+            "Token Budget Report",
+            f"  Total: {self.total_tokens:,} / {self.total_budget:,} " f"({self.utilization:.1%})",
             f"  Overhead: {self.overhead_tokens:,}",
             f"  Remaining: {self.remaining:,}",
-            f"  Sections:",
+            "  Sections:",
         ]
         for section in sorted(self.sections, key=lambda s: s.priority.value):
             status = "OVER" if section.over_budget else "OK"

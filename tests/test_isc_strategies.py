@@ -15,6 +15,7 @@ class TestISC3363NamedStrategies:
             Distillation,
             KVCacheOrdering,
         )
+
         assert ContextCaching is not None
         assert Distillation is not None
         assert KVCacheOrdering is not None
@@ -26,6 +27,7 @@ class TestISC3363NamedStrategies:
             Distillation,
             KVCacheOrdering,
         )
+
         assert ContextCaching.__doc__ is not None and len(ContextCaching.__doc__.strip()) > 10
         assert Distillation.__doc__ is not None and len(Distillation.__doc__.strip()) > 10
         assert KVCacheOrdering.__doc__ is not None and len(KVCacheOrdering.__doc__.strip()) > 10
@@ -37,6 +39,7 @@ class TestISC3363NamedStrategies:
             Distillation,
             KVCacheOrdering,
         )
+
         caching = ContextCaching()
         dist = Distillation()
         kv = KVCacheOrdering()
@@ -121,9 +124,9 @@ class TestDistillationStrategy:
 
         dist = Distillation(compression_ratio=0.4)
         result = dist(self.SAMPLE_TEXT)
-        assert result.compressed_length < result.original_length, (
-            "Distillate should be shorter than original"
-        )
+        assert (
+            result.compressed_length < result.original_length
+        ), "Distillate should be shorter than original"
 
     def test_distillation_preserves_key_information(self) -> None:
         """Distillation preserves a meaningful retention score (>0.4)."""
@@ -131,9 +134,9 @@ class TestDistillationStrategy:
 
         dist = Distillation(compression_ratio=0.5)
         result = dist(self.SAMPLE_TEXT)
-        assert result.retention_score > 0.4, (
-            f"Retention score {result.retention_score:.2%} too low, expected >40%"
-        )
+        assert (
+            result.retention_score > 0.4
+        ), f"Retention score {result.retention_score:.2%} too low, expected >40%"
 
     def test_distillation_compression_ratio_applied(self) -> None:
         """Distillate is approximately the target compression ratio in size."""
@@ -143,9 +146,9 @@ class TestDistillationStrategy:
         dist = Distillation(compression_ratio=target_ratio)
         result = dist(self.SAMPLE_TEXT)
         # Allow ±30% tolerance in actual compression ratio
-        assert result.compression_ratio < 0.85, (
-            f"Actual compression ratio {result.compression_ratio:.2f} is too close to 1.0"
-        )
+        assert (
+            result.compression_ratio < 0.85
+        ), f"Actual compression ratio {result.compression_ratio:.2f} is too close to 1.0"
 
     def test_distillation_invalid_ratio_raises_error(self) -> None:
         """Distillation raises ValueError for invalid compression_ratio."""
@@ -185,7 +188,8 @@ class TestKVCacheOrderingStrategy:
         """KVCacheOrdering sorts items with most stable content first."""
         from src.context_engineering_toolkit.strategies import KVCacheOrdering
         from src.context_engineering_toolkit.strategies.kv_cache_ordering import (
-            CacheLayer, ContextItem
+            CacheLayer,
+            ContextItem,
         )
 
         kv = KVCacheOrdering()
@@ -198,15 +202,16 @@ class TestKVCacheOrderingStrategy:
 
         ordered = kv(items)
         layer_order = [item.layer.value for item in ordered.ordered_items]
-        assert layer_order == sorted(layer_order), (
-            f"Items not sorted by cache layer: {[(i.label, i.layer.value) for i in ordered.ordered_items]}"
-        )
+        assert (
+            layer_order == sorted(layer_order)
+        ), f"Items not sorted by cache layer: {[(i.label, i.layer.value) for i in ordered.ordered_items]}"
 
     def test_kv_ordering_system_prompt_is_first(self) -> None:
         """System prompt is always first in ordered output."""
         from src.context_engineering_toolkit.strategies import KVCacheOrdering
         from src.context_engineering_toolkit.strategies.kv_cache_ordering import (
-            CacheLayer, ContextItem
+            CacheLayer,
+            ContextItem,
         )
 
         kv = KVCacheOrdering()
@@ -217,15 +222,16 @@ class TestKVCacheOrderingStrategy:
         ]
         ordered = kv(items)
         first_item = ordered.ordered_items[0]
-        assert first_item.layer == CacheLayer.SYSTEM_PROMPT, (
-            f"Expected SYSTEM_PROMPT first, got {first_item.layer}"
-        )
+        assert (
+            first_item.layer == CacheLayer.SYSTEM_PROMPT
+        ), f"Expected SYSTEM_PROMPT first, got {first_item.layer}"
 
     def test_kv_ordering_cache_efficiency_ratio_is_between_0_and_1(self) -> None:
         """Cache efficiency ratio is between 0.0 and 1.0."""
         from src.context_engineering_toolkit.strategies import KVCacheOrdering
         from src.context_engineering_toolkit.strategies.kv_cache_ordering import (
-            CacheLayer, ContextItem
+            CacheLayer,
+            ContextItem,
         )
 
         kv = KVCacheOrdering()
@@ -240,7 +246,8 @@ class TestKVCacheOrderingStrategy:
         """Assembled text contains content from all provided items."""
         from src.context_engineering_toolkit.strategies import KVCacheOrdering
         from src.context_engineering_toolkit.strategies.kv_cache_ordering import (
-            CacheLayer, ContextItem
+            CacheLayer,
+            ContextItem,
         )
 
         kv = KVCacheOrdering()
@@ -256,7 +263,8 @@ class TestKVCacheOrderingStrategy:
         """plan() returns a non-empty string describing the cache plan."""
         from src.context_engineering_toolkit.strategies import KVCacheOrdering
         from src.context_engineering_toolkit.strategies.kv_cache_ordering import (
-            CacheLayer, ContextItem
+            CacheLayer,
+            ContextItem,
         )
 
         kv = KVCacheOrdering()

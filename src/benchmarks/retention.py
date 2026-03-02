@@ -17,10 +17,10 @@ class RetentionResult:
 
     original_length: int
     compressed_length: int
-    key_term_retention: float    # Fraction of important terms preserved
-    sentence_coverage: float     # Fraction of original sentences represented
-    entity_retention: float      # Fraction of named entities preserved
-    numeric_retention: float     # Fraction of numbers preserved
+    key_term_retention: float  # Fraction of important terms preserved
+    sentence_coverage: float  # Fraction of original sentences represented
+    entity_retention: float  # Fraction of named entities preserved
+    numeric_retention: float  # Fraction of numbers preserved
 
     @property
     def compression_ratio(self) -> float:
@@ -87,28 +87,94 @@ class RetentionBenchmark:
         in document's opening section (proxy for "in conclusions/results
         but not in introduction"). Top 30 discriminative terms are tested.
         """
-        import math
 
         stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "be", "been",
-            "being", "have", "has", "had", "do", "does", "did", "will",
-            "would", "could", "should", "may", "might", "shall", "can",
-            "to", "of", "in", "for", "on", "with", "at", "by", "from",
-            "as", "into", "through", "during", "before", "after", "and",
-            "but", "or", "not", "no", "this", "that", "these", "those",
-            "it", "its", "he", "she", "they", "we", "you", "i", "me",
-            "also", "which", "more", "than", "such", "when", "each",
-            "their", "where", "other", "some", "what", "how", "all",
-            "been", "only", "over", "out", "use", "used", "using",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "shall",
+            "can",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+            "and",
+            "but",
+            "or",
+            "not",
+            "no",
+            "this",
+            "that",
+            "these",
+            "those",
+            "it",
+            "its",
+            "he",
+            "she",
+            "they",
+            "we",
+            "you",
+            "i",
+            "me",
+            "also",
+            "which",
+            "more",
+            "than",
+            "such",
+            "when",
+            "each",
+            "their",
+            "where",
+            "other",
+            "some",
+            "what",
+            "how",
+            "all",
+            "only",
+            "over",
+            "out",
+            "use",
+            "used",
+            "using",
         }
 
         # Extract words from full document and from compressed version
         def extract_words(text: str) -> list[str]:
-            words = re.findall(r'\b[a-z]+\b', text.lower())
+            words = re.findall(r"\b[a-z]+\b", text.lower())
             return [w for w in words if w not in stopwords and len(w) > 3]
 
         orig_words = extract_words(original)
-        comp_words_set = set(re.findall(r'\b[a-z]+\b', compressed.lower()))
+        comp_words_set = set(re.findall(r"\b[a-z]+\b", compressed.lower()))
 
         if not orig_words:
             return 1.0
@@ -146,7 +212,7 @@ class RetentionBenchmark:
             # If not enough discriminative terms, fill from overall frequency
             if len(top_terms) < 10:
                 extra = [t for t, _ in orig_word_freq.most_common(30) if t not in set(top_terms)]
-                top_terms.extend(extra[:max(0, 30 - len(top_terms))])
+                top_terms.extend(extra[: max(0, 30 - len(top_terms))])
 
         if not top_terms:
             return 1.0
@@ -170,11 +236,11 @@ class RetentionBenchmark:
 
         comp_words = set()
         for s in comp_sentences:
-            comp_words.update(re.findall(r'\b\w+\b', s.lower()))
+            comp_words.update(re.findall(r"\b\w+\b", s.lower()))
 
         covered = 0
         for sentence in orig_sentences:
-            sent_words = set(re.findall(r'\b\w+\b', sentence.lower()))
+            sent_words = set(re.findall(r"\b\w+\b", sentence.lower()))
             if not sent_words:
                 covered += 1
                 continue
@@ -186,7 +252,7 @@ class RetentionBenchmark:
 
     def _entity_retention(self, original: str, compressed: str) -> float:
         """Measure retention of named entities (capitalized multi-word phrases)."""
-        orig_entities = set(re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', original))
+        orig_entities = set(re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", original))
         if not orig_entities:
             return 1.0
 
@@ -196,7 +262,7 @@ class RetentionBenchmark:
 
     def _numeric_retention(self, original: str, compressed: str) -> float:
         """Measure retention of numeric values."""
-        orig_numbers = set(re.findall(r'\b\d+\.?\d*%?\b', original))
+        orig_numbers = set(re.findall(r"\b\d+\.?\d*%?\b", original))
         if not orig_numbers:
             return 1.0
 
@@ -206,5 +272,5 @@ class RetentionBenchmark:
     @staticmethod
     def _split_sentences(text: str) -> list[str]:
         """Split text into sentences."""
-        sentences = re.split(r'(?<=[.!?])\s+', text)
+        sentences = re.split(r"(?<=[.!?])\s+", text)
         return [s.strip() for s in sentences if s.strip()]

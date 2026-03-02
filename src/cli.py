@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import click
 
+from src.benchmarks.retention import RetentionBenchmark
 from src.compression.extractive import ExtractiveSummarizer
 from src.compression.truncation import SmartTruncator, TruncationStrategy
+from src.tokens.budget import BudgetPriority, TokenBudget
 from src.tokens.counter import ModelFamily, TokenCounter
-from src.tokens.budget import TokenBudget, BudgetPriority
-from src.benchmarks.retention import RetentionBenchmark
-
 
 # Profiles directory (relative to the package root)
 _DEFAULT_PROFILES_DIR = Path(__file__).parent.parent / "profiles"
@@ -86,7 +86,7 @@ def _resolve_model(model_name: str) -> ModelFamily:
     return mapping[model_name]
 
 
-def _load_profile(profile_name: str, profiles_dir: Optional[Path] = None) -> dict[str, Any]:
+def _load_profile(profile_name: str, profiles_dir: Path | None = None) -> dict[str, Any]:
     """Load a model profile YAML file.
 
     Args:
@@ -101,8 +101,10 @@ def _load_profile(profile_name: str, profiles_dir: Optional[Path] = None) -> dic
     """
     try:
         import yaml
-    except ImportError:
-        raise click.ClickException("PyYAML is required for --profile. Install with: pip install pyyaml")
+    except ImportError as err:
+        raise click.ClickException(
+            "PyYAML is required for --profile. Install with: pip install pyyaml"
+        ) from err
 
     search_dirs = [profiles_dir] if profiles_dir else [_DEFAULT_PROFILES_DIR]
 
@@ -149,14 +151,19 @@ def count(text: str | None, file: str | None, model: str, json_output: bool) -> 
     result = counter.count(content)
 
     if json_output:
-        click.echo(json.dumps({
-            "token_count": result.token_count,
-            "model": result.model.value,
-            "estimated_input_cost_usd": round(result.estimated_input_cost_usd, 6),
-            "context_window": result.context_window,
-            "utilization": round(result.utilization, 4),
-            "remaining_tokens": result.remaining_tokens,
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "token_count": result.token_count,
+                    "model": result.model.value,
+                    "estimated_input_cost_usd": round(result.estimated_input_cost_usd, 6),
+                    "context_window": result.context_window,
+                    "utilization": round(result.utilization, 4),
+                    "remaining_tokens": result.remaining_tokens,
+                },
+                indent=2,
+            )
+        )
     else:
         click.echo(f"Tokens:     {result.token_count:,}")
         click.echo(f"Model:      {result.model.value}")
@@ -171,7 +178,9 @@ def count(text: str | None, file: str | None, model: str, json_output: bool) -> 
 @click.option("--file", "-f", type=click.Path(exists=True), help="Read text from file")
 @click.option("--target-tokens", "-t", type=int, required=False, help="Target token count")
 @click.option("--model", "-m", default="gpt-4o", help="Model for tokenization")
-@click.option("--profile", "-p", default=None, help="Model profile name (e.g., gpt-4o, claude-sonnet)")
+@click.option(
+    "--profile", "-p", default=None, help="Model profile name (e.g., gpt-4o, claude-sonnet)"
+)
 @click.option("--method", default="extractive", type=click.Choice(["extractive", "truncate"]))
 @click.option("--strategy", default="head", type=click.Choice(["head", "tail", "middle"]))
 def compress(
@@ -215,7 +224,9 @@ def compress(
                 err=True,
             )
         else:
-            raise click.UsageError("Provide --target-tokens or --profile with an optimal_compression_ratio")
+            raise click.UsageError(
+                "Provide --target-tokens or --profile with an optimal_compression_ratio"
+            )
 
     if method == "extractive":
         summarizer = ExtractiveSummarizer(model=model_family)
@@ -234,7 +245,9 @@ def compress(
 
 @main.command()
 @click.argument("input_file", type=click.Path(exists=True), required=True)
-@click.option("--profile", "-p", required=True, help="Model profile name (e.g., gpt-4o, claude-sonnet)")
+@click.option(
+    "--profile", "-p", required=True, help="Model profile name (e.g., gpt-4o, claude-sonnet)"
+)
 @click.option("--target-tokens", "-t", type=int, default=None, help="Override target token count")
 @click.option("--json-output", "-j", is_flag=True, help="Output as JSON")
 def assemble(input_file: str, profile: str, target_tokens: int | None, json_output: bool) -> None:
@@ -262,32 +275,60 @@ def assemble(input_file: str, profile: str, target_tokens: int | None, json_outp
     compressed_tokens = counter.count(compressed).token_count
 
     if json_output:
-        click.echo(json.dumps({
-            "profile": profile,
-            "model": model_name,
-            "context_window": context_window,
-            "optimal_compression_ratio": compression_ratio,
-            "original_tokens": original_tokens,
-            "compressed_tokens": compressed_tokens,
-            "actual_ratio": round(compressed_tokens / original_tokens, 4) if original_tokens > 0 else 1.0,
-            "fits_in_window": compressed_tokens <= context_window,
-            "text": compressed,
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "profile": profile,
+                    "model": model_name,
+                    "context_window": context_window,
+                    "optimal_compression_ratio": compression_ratio,
+                    "original_tokens": original_tokens,
+                    "compressed_tokens": compressed_tokens,
+                    "actual_ratio": round(compressed_tokens / original_tokens, 4)
+                    if original_tokens > 0
+                    else 1.0,
+                    "fits_in_window": compressed_tokens <= context_window,
+                    "text": compressed,
+                },
+                indent=2,
+            )
+        )
     else:
         click.echo(f"Profile:     {profile} ({model_name})", err=True)
         click.echo(f"Window:      {context_window:,} tokens", err=True)
         click.echo(f"Original:    {original_tokens:,} tokens", err=True)
         click.echo(f"Compressed:  {compressed_tokens:,} tokens", err=True)
-        click.echo(f"Ratio:       {compressed_tokens/original_tokens:.1%}" if original_tokens else "N/A", err=True)
+        click.echo(
+            f"Ratio:       {compressed_tokens/original_tokens:.1%}" if original_tokens else "N/A",
+            err=True,
+        )
         click.echo(compressed)
 
 
 @main.command()
 @click.option("--volume", "-v", type=int, required=True, help="Monthly request volume")
-@click.option("--tokens-per-doc", "-t", type=int, required=True, help="Average document token count per request")
-@click.option("--profile", "-p", default="claude-sonnet", help="Model profile name (e.g., gpt-4o, claude-sonnet)")
-@click.option("--output-tokens", type=int, default=500, help="Average output tokens per request (default: 500)")
-@click.option("--compression-ratio", type=float, default=None, help="Override compression ratio (e.g., 0.4)")
+@click.option(
+    "--tokens-per-doc",
+    "-t",
+    type=int,
+    required=True,
+    help="Average document token count per request",
+)
+@click.option(
+    "--profile",
+    "-p",
+    default="claude-sonnet",
+    help="Model profile name (e.g., gpt-4o, claude-sonnet)",
+)
+@click.option(
+    "--output-tokens",
+    type=int,
+    default=500,
+    help="Average output tokens per request (default: 500)",
+)
+@click.option(
+    "--compression-ratio", type=float, default=None, help="Override compression ratio (e.g., 0.4)"
+)
 @click.option("--json-output", "-j", is_flag=True, help="Output as JSON")
 def cost(
     volume: int,
@@ -313,11 +354,8 @@ def cost(
     """
     # Load profile to get compression ratio if not overridden
     profile_data: dict[str, Any] = {}
-    try:
+    with contextlib.suppress(click.BadParameter):
         profile_data = _load_profile(profile)
-    except click.BadParameter:
-        # Profile not found: use defaults from PRICING_2026
-        pass
 
     # Determine compression ratio
     if compression_ratio is None:
@@ -331,10 +369,11 @@ def cost(
     # Also use profile pricing if available
     if "pricing_2026" in profile_data:
         profile_pricing = profile_data["pricing_2026"]
+        default_cached = pricing.get("cached_input", pricing["input"] * 0.5)
         pricing = {
             "input": profile_pricing.get("input_per_million", pricing["input"]),
             "output": profile_pricing.get("output_per_million", pricing["output"]),
-            "cached_input": profile_pricing.get("cached_input_per_million", pricing.get("cached_input", pricing["input"] * 0.5)),
+            "cached_input": profile_pricing.get("cached_input_per_million", default_cached),
         }
 
     input_rate = pricing["input"]  # USD per million input tokens
@@ -363,47 +402,52 @@ def cost(
     roi_pct = (monthly_savings / naive_total_cost * 100) if naive_total_cost > 0 else 0.0
 
     if json_output:
-        click.echo(json.dumps({
-            "profile": profile,
-            "model_pricing_source": "2026 pricing (see profiles/*.yaml)",
-            "inputs": {
-                "monthly_volume": volume,
-                "tokens_per_doc": tokens_per_doc,
-                "output_tokens_per_request": output_tokens,
-                "compression_ratio": compression_ratio,
-            },
-            "pricing": {
-                "input_per_million_usd": input_rate,
-                "output_per_million_usd": output_rate,
-            },
-            "tokens_saved_per_request": tokens_saved_per_request,
-            "monthly_naive_cost_usd": round(naive_total_cost, 2),
-            "monthly_optimized_cost_usd": round(optimized_total_cost, 2),
-            "monthly_savings_usd": round(monthly_savings, 2),
-            "roi_percentage": round(roi_pct, 1),
-            "annual_savings_usd": round(monthly_savings * 12, 2),
-            "total_tokens_saved_monthly": total_tokens_saved,
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "profile": profile,
+                    "model_pricing_source": "2026 pricing (see profiles/*.yaml)",
+                    "inputs": {
+                        "monthly_volume": volume,
+                        "tokens_per_doc": tokens_per_doc,
+                        "output_tokens_per_request": output_tokens,
+                        "compression_ratio": compression_ratio,
+                    },
+                    "pricing": {
+                        "input_per_million_usd": input_rate,
+                        "output_per_million_usd": output_rate,
+                    },
+                    "tokens_saved_per_request": tokens_saved_per_request,
+                    "monthly_naive_cost_usd": round(naive_total_cost, 2),
+                    "monthly_optimized_cost_usd": round(optimized_total_cost, 2),
+                    "monthly_savings_usd": round(monthly_savings, 2),
+                    "roi_percentage": round(roi_pct, 1),
+                    "annual_savings_usd": round(monthly_savings * 12, 2),
+                    "total_tokens_saved_monthly": total_tokens_saved,
+                },
+                indent=2,
+            )
+        )
     else:
         click.echo(f"\n{'='*55}")
-        click.echo(f"Cost Savings Calculator — 2026 Pricing")
+        click.echo("Cost Savings Calculator — 2026 Pricing")
         click.echo(f"{'='*55}")
-        click.echo(f"\nConfiguration:")
+        click.echo("\nConfiguration:")
         click.echo(f"  Profile:             {profile}")
         click.echo(f"  Monthly volume:      {volume:,} requests")
         click.echo(f"  Tokens per document: {tokens_per_doc:,}")
         click.echo(f"  Output tokens/req:   {output_tokens:,}")
         click.echo(f"  Compression ratio:   {compression_ratio:.0%}")
-        click.echo(f"\nPricing (2026):")
+        click.echo("\nPricing (2026):")
         click.echo(f"  Input:   ${input_rate:.4f}/million tokens")
         click.echo(f"  Output:  ${output_rate:.4f}/million tokens")
         click.echo(f"\n{'─'*55}")
         click.echo(f"Tokens saved per request: {tokens_saved_per_request:,}")
         click.echo(f"{'─'*55}")
-        click.echo(f"\n  NAIVE implementation:")
+        click.echo("\n  NAIVE implementation:")
         click.echo(f"    Input tokens:   {naive_total_input_tokens:,}/month")
         click.echo(f"    Monthly cost:   ${naive_total_cost:,.2f}")
-        click.echo(f"\n  OPTIMIZED implementation:")
+        click.echo("\n  OPTIMIZED implementation:")
         click.echo(f"    Input tokens:   {optimized_total_input_tokens:,}/month")
         click.echo(f"    Monthly cost:   ${optimized_total_cost:,.2f}")
         click.echo(f"\n{'─'*55}")
@@ -428,14 +472,19 @@ def benchmark(original_file: str, compressed_file: str, json_output: bool) -> No
     result = bench.evaluate(original, compressed)
 
     if json_output:
-        click.echo(json.dumps({
-            "compression_ratio": round(result.compression_ratio, 4),
-            "overall_score": round(result.overall_score, 4),
-            "key_term_retention": round(result.key_term_retention, 4),
-            "sentence_coverage": round(result.sentence_coverage, 4),
-            "entity_retention": round(result.entity_retention, 4),
-            "numeric_retention": round(result.numeric_retention, 4),
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "compression_ratio": round(result.compression_ratio, 4),
+                    "overall_score": round(result.overall_score, 4),
+                    "key_term_retention": round(result.key_term_retention, 4),
+                    "sentence_coverage": round(result.sentence_coverage, 4),
+                    "entity_retention": round(result.entity_retention, 4),
+                    "numeric_retention": round(result.numeric_retention, 4),
+                },
+                indent=2,
+            )
+        )
     else:
         click.echo(f"Compression ratio:    {result.compression_ratio:.1%}")
         click.echo(f"Overall retention:    {result.overall_score:.1%}")
@@ -506,7 +555,9 @@ def demo() -> None:
     # 5. Budget management
     click.echo("\n--- Token Budget ---")
     budget = TokenBudget(total_budget=8000, response_reserve=2000)
-    budget.add_section("system", "You are a helpful assistant.", 8, priority=BudgetPriority.CRITICAL)
+    budget.add_section(
+        "system", "You are a helpful assistant.", 8, priority=BudgetPriority.CRITICAL
+    )
     budget.add_section("context", sample_text, result.token_count, priority=BudgetPriority.HIGH)
     budget.add_section("history", "User: Hello\nAssistant: Hi!", 12, priority=BudgetPriority.MEDIUM)
     report = budget.allocate()

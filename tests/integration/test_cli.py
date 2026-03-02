@@ -4,7 +4,6 @@ import json
 import os
 import tempfile
 
-import pytest
 from click.testing import CliRunner
 
 from src.cli import main
@@ -91,9 +90,7 @@ class TestCLI:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as comp:
                 comp.write(compressed_text)
                 comp.flush()
-                result = self.runner.invoke(
-                    main, ["benchmark", orig.name, comp.name]
-                )
+                result = self.runner.invoke(main, ["benchmark", orig.name, comp.name])
         os.unlink(orig.name)
         os.unlink(comp.name)
         assert result.exit_code == 0
@@ -106,9 +103,7 @@ class TestCLI:
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as comp:
                 comp.write("Text with 42 and OpenAI.")
                 comp.flush()
-                result = self.runner.invoke(
-                    main, ["benchmark", orig.name, comp.name, "-j"]
-                )
+                result = self.runner.invoke(main, ["benchmark", orig.name, comp.name, "-j"])
         os.unlink(orig.name)
         os.unlink(comp.name)
         assert result.exit_code == 0

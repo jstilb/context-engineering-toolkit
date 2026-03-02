@@ -12,7 +12,12 @@ import yaml
 PROJECT_ROOT = Path(__file__).parent.parent
 PROFILES_DIR = PROJECT_ROOT / "profiles"
 REQUIRED_PROFILES = ["gpt-4o.yaml", "claude-sonnet.yaml", "llama-3.3.yaml", "gemini-2.0-flash.yaml"]
-REQUIRED_FIELDS = ["context_window", "optimal_compression_ratio", "priority_ordering", "token_counting_quirks"]
+REQUIRED_FIELDS = [
+    "context_window",
+    "optimal_compression_ratio",
+    "priority_ordering",
+    "token_counting_quirks",
+]
 
 
 class TestISC5952ModelProfiles:
@@ -25,9 +30,9 @@ class TestISC5952ModelProfiles:
     def test_exactly_four_yaml_files(self) -> None:
         """Exactly 4 YAML files exist in profiles/."""
         yaml_files = list(PROFILES_DIR.glob("*.yaml"))
-        assert len(yaml_files) == 4, (
-            f"Expected 4 YAML files, found {len(yaml_files)}: {[f.name for f in yaml_files]}"
-        )
+        assert (
+            len(yaml_files) == 4
+        ), f"Expected 4 YAML files, found {len(yaml_files)}: {[f.name for f in yaml_files]}"
 
     @pytest.mark.parametrize("filename", REQUIRED_PROFILES)
     def test_required_profile_exists(self, filename: str) -> None:
@@ -49,39 +54,38 @@ class TestISC5952ModelProfiles:
         profile_path = PROFILES_DIR / filename
         data = yaml.safe_load(profile_path.read_text())
         assert field in data, (
-            f"Profile {filename} missing required field '{field}'. "
-            f"Has: {list(data.keys())}"
+            f"Profile {filename} missing required field '{field}'. " f"Has: {list(data.keys())}"
         )
 
     def test_gpt4o_context_window_is_128k(self) -> None:
         """GPT-4o profile has 128,000 token context window."""
         data = yaml.safe_load((PROFILES_DIR / "gpt-4o.yaml").read_text())
-        assert data["context_window"] == 128000, (
-            f"GPT-4o context_window should be 128000, got {data['context_window']}"
-        )
+        assert (
+            data["context_window"] == 128000
+        ), f"GPT-4o context_window should be 128000, got {data['context_window']}"
 
     def test_claude_sonnet_context_window_is_200k(self) -> None:
         """Claude Sonnet profile has 200,000 token context window."""
         data = yaml.safe_load((PROFILES_DIR / "claude-sonnet.yaml").read_text())
-        assert data["context_window"] == 200000, (
-            f"Claude Sonnet context_window should be 200000, got {data['context_window']}"
-        )
+        assert (
+            data["context_window"] == 200000
+        ), f"Claude Sonnet context_window should be 200000, got {data['context_window']}"
 
     def test_gemini_context_window_is_1m(self) -> None:
         """Gemini 2.0 Flash profile has 1,000,000 token context window."""
         data = yaml.safe_load((PROFILES_DIR / "gemini-2.0-flash.yaml").read_text())
-        assert data["context_window"] == 1000000, (
-            f"Gemini context_window should be 1000000, got {data['context_window']}"
-        )
+        assert (
+            data["context_window"] == 1000000
+        ), f"Gemini context_window should be 1000000, got {data['context_window']}"
 
     def test_compression_ratios_are_valid(self) -> None:
         """All compression ratios are between 0 and 1."""
         for filename in REQUIRED_PROFILES:
             data = yaml.safe_load((PROFILES_DIR / filename).read_text())
             ratio = data["optimal_compression_ratio"]
-            assert 0.0 < ratio < 1.0, (
-                f"{filename}: optimal_compression_ratio {ratio} is not in (0, 1)"
-            )
+            assert (
+                0.0 < ratio < 1.0
+            ), f"{filename}: optimal_compression_ratio {ratio} is not in (0, 1)"
 
     def test_priority_ordering_is_list(self) -> None:
         """All priority_ordering fields are non-empty lists."""
@@ -109,7 +113,9 @@ class TestISC5450CLIProfileFlag:
             text=True,
             cwd=str(PROJECT_ROOT),
         )
-        assert proc.returncode == 0, f"assemble --profile gpt-4o failed: {proc.stderr}\n{proc.stdout}"
+        assert (
+            proc.returncode == 0
+        ), f"assemble --profile gpt-4o failed: {proc.stderr}\n{proc.stdout}"
         assert len(proc.stdout.strip()) > 0, "No output produced by assemble"
 
     def test_assemble_with_claude_profile_exits_zero(self, tmp_path: Path) -> None:
@@ -121,7 +127,15 @@ class TestISC5450CLIProfileFlag:
             "Cost savings at 100K requests/month can reach $28,800."
         )
         proc = subprocess.run(
-            [sys.executable, "-m", "src.cli", "assemble", str(sample), "--profile", "claude-sonnet"],
+            [
+                sys.executable,
+                "-m",
+                "src.cli",
+                "assemble",
+                str(sample),
+                "--profile",
+                "claude-sonnet",
+            ],
             capture_output=True,
             text=True,
             cwd=str(PROJECT_ROOT),
@@ -133,34 +147,54 @@ class TestISC5450CLIProfileFlag:
         sample = tmp_path / "sample.txt"
         sample.write_text("Some text.")
         proc = subprocess.run(
-            [sys.executable, "-m", "src.cli", "assemble", str(sample), "--profile", "invalid-model-xyz"],
+            [
+                sys.executable,
+                "-m",
+                "src.cli",
+                "assemble",
+                str(sample),
+                "--profile",
+                "invalid-model-xyz",
+            ],
             capture_output=True,
             text=True,
             cwd=str(PROJECT_ROOT),
         )
         assert proc.returncode != 0, "Expected nonzero exit for unknown profile"
         error_output = (proc.stdout + proc.stderr).lower()
-        assert "invalid" in error_output or "not found" in error_output or "error" in error_output, (
-            f"Expected descriptive error message, got: {proc.stdout}\n{proc.stderr}"
-        )
+        assert (
+            "invalid" in error_output or "not found" in error_output or "error" in error_output
+        ), f"Expected descriptive error message, got: {proc.stdout}\n{proc.stderr}"
 
     def test_compress_with_profile_uses_optimal_ratio(self, tmp_path: Path) -> None:
         """compress --profile applies optimal_compression_ratio from YAML."""
         # Create a document long enough to compress
-        long_text = " ".join([
-            "The Transformer architecture was introduced by Vaswani et al in 2017.",
-            "It uses multi-head self-attention to process sequences in parallel.",
-            "BERT extends this with bidirectional pre-training on masked language modeling.",
-            "GPT-4 achieves 86.4% accuracy on MMLU using causal language modeling.",
-            "The context window has grown from 2048 tokens in 2020 to 1 million in 2026.",
-            "Cost optimization through context engineering saves 40-70% on API bills.",
-        ] * 5)
+        long_text = " ".join(
+            [
+                "The Transformer architecture was introduced by Vaswani et al in 2017.",
+                "It uses multi-head self-attention to process sequences in parallel.",
+                "BERT extends this with bidirectional pre-training on masked language modeling.",
+                "GPT-4 achieves 86.4% accuracy on MMLU using causal language modeling.",
+                "The context window has grown from 2048 tokens in 2020 to 1 million in 2026.",
+                "Cost optimization through context engineering saves 40-70% on API bills.",
+            ]
+            * 5
+        )
 
         sample = tmp_path / "long_doc.txt"
         sample.write_text(long_text)
 
         proc = subprocess.run(
-            [sys.executable, "-m", "src.cli", "compress", "--file", str(sample), "--profile", "gpt-4o"],
+            [
+                sys.executable,
+                "-m",
+                "src.cli",
+                "compress",
+                "--file",
+                str(sample),
+                "--profile",
+                "gpt-4o",
+            ],
             capture_output=True,
             text=True,
             cwd=str(PROJECT_ROOT),

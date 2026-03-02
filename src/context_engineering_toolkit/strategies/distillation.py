@@ -25,6 +25,10 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.tokens.counter import ModelFamily
 
 
 @dataclass
@@ -101,9 +105,7 @@ class Distillation:
             preserve_structure: Whether to maintain document structure in output.
         """
         if not 0.0 < compression_ratio <= 1.0:
-            raise ValueError(
-                f"compression_ratio must be between 0 and 1, got {compression_ratio}"
-            )
+            raise ValueError(f"compression_ratio must be between 0 and 1, got {compression_ratio}")
         self.compression_ratio = compression_ratio
         self.model = model
         self.preserve_structure = preserve_structure
@@ -131,9 +133,9 @@ class Distillation:
         Returns:
             Distillate with compressed text and quality metrics.
         """
-        from src.compression.extractive import ExtractiveSummarizer
         from src.benchmarks.retention import RetentionBenchmark
-        from src.tokens.counter import ModelFamily, TokenCounter
+        from src.compression.extractive import ExtractiveSummarizer
+        from src.tokens.counter import TokenCounter
 
         model_family = self._resolve_model_family()
         counter = TokenCounter(model_family)
@@ -152,8 +154,9 @@ class Distillation:
 
         # Count key terms preserved
         import re
-        orig_terms = set(re.findall(r'\b[A-Za-z]{4,}\b', text))
-        comp_terms = set(re.findall(r'\b[A-Za-z]{4,}\b', compressed))
+
+        orig_terms = set(re.findall(r"\b[A-Za-z]{4,}\b", text))
+        comp_terms = set(re.findall(r"\b[A-Za-z]{4,}\b", compressed))
         key_term_count = len(orig_terms & comp_terms)
 
         actual_ratio = len(compressed) / len(text) if len(text) > 0 else 1.0
@@ -178,7 +181,7 @@ class Distillation:
         """
         return [self.distill(text) for text in texts]
 
-    def _resolve_model_family(self) -> "ModelFamily":
+    def _resolve_model_family(self) -> ModelFamily:
         """Resolve model name to ModelFamily enum."""
         from src.tokens.counter import ModelFamily
 

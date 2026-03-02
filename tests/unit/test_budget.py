@@ -1,7 +1,5 @@
 """Tests for the token budget module."""
 
-import pytest
-
 from src.tokens.budget import BudgetPriority, BudgetReport, BudgetSection, TokenBudget
 
 
@@ -9,35 +7,25 @@ class TestBudgetSection:
     """Tests for BudgetSection."""
 
     def test_utilization_within_budget(self) -> None:
-        section = BudgetSection(
-            name="test", content="hello", token_count=50, max_tokens=100
-        )
+        section = BudgetSection(name="test", content="hello", token_count=50, max_tokens=100)
         assert section.utilization == 0.5
 
     def test_utilization_at_budget(self) -> None:
-        section = BudgetSection(
-            name="test", content="hello", token_count=100, max_tokens=100
-        )
+        section = BudgetSection(name="test", content="hello", token_count=100, max_tokens=100)
         assert section.utilization == 1.0
 
     def test_over_budget(self) -> None:
-        section = BudgetSection(
-            name="test", content="hello", token_count=150, max_tokens=100
-        )
+        section = BudgetSection(name="test", content="hello", token_count=150, max_tokens=100)
         assert section.over_budget is True
         assert section.overflow == 50
 
     def test_not_over_budget(self) -> None:
-        section = BudgetSection(
-            name="test", content="hello", token_count=50, max_tokens=100
-        )
+        section = BudgetSection(name="test", content="hello", token_count=50, max_tokens=100)
         assert section.over_budget is False
         assert section.overflow == 0
 
     def test_zero_max_tokens(self) -> None:
-        section = BudgetSection(
-            name="test", content="", token_count=0, max_tokens=0
-        )
+        section = BudgetSection(name="test", content="", token_count=0, max_tokens=0)
         assert section.utilization == 0.0
 
 
@@ -68,9 +56,7 @@ class TestBudgetReport:
             BudgetSection("b", "y", 150, 100),  # over budget
             BudgetSection("c", "z", 200, 100),  # over budget
         ]
-        report = BudgetReport(
-            total_tokens=400, total_budget=1000, sections=sections
-        )
+        report = BudgetReport(total_tokens=400, total_budget=1000, sections=sections)
         assert len(report.over_budget_sections) == 2
 
     def test_summary_output(self) -> None:
@@ -78,9 +64,7 @@ class TestBudgetReport:
             BudgetSection("system", "sys", 50, 100, BudgetPriority.CRITICAL),
             BudgetSection("context", "ctx", 200, 150, BudgetPriority.HIGH),
         ]
-        report = BudgetReport(
-            total_tokens=250, total_budget=1000, sections=sections
-        )
+        report = BudgetReport(total_tokens=250, total_budget=1000, sections=sections)
         summary = report.summary()
         assert "Token Budget Report" in summary
         assert "system" in summary
@@ -129,9 +113,7 @@ class TestTokenBudget:
             BudgetSection("a", "x", 50, 200, BudgetPriority.HIGH),
             BudgetSection("b", "y", 250, 200, BudgetPriority.MEDIUM),
         ]
-        report = BudgetReport(
-            total_tokens=300, total_budget=1000, sections=sections
-        )
+        report = BudgetReport(total_tokens=300, total_budget=1000, sections=sections)
         rebalanced = budget.rebalance(report)
         # Section a should shrink, section b should get more
         section_a = [s for s in rebalanced.sections if s.name == "a"][0]

@@ -3,12 +3,10 @@
 import pytest
 
 from src.assembly.priority import (
-    AssemblyResult,
     ContextItem,
     ContextPriority,
     PriorityAssembler,
 )
-from src.tokens.counter import ModelFamily
 
 
 class TestContextItem:
@@ -53,10 +51,12 @@ class TestPriorityAssembler:
 
     def test_required_items_always_included(self) -> None:
         assembler = PriorityAssembler(budget_tokens=4000)
-        assembler.add(ContextItem(
-            content="System prompt: You are helpful.",
-            priority=ContextPriority.REQUIRED,
-        ))
+        assembler.add(
+            ContextItem(
+                content="System prompt: You are helpful.",
+                priority=ContextPriority.REQUIRED,
+            )
+        )
         assembler.add(ContextItem(content="Optional context.", priority=ContextPriority.LOW))
         result = assembler.assemble()
         required = [i for i in result.included_items if i.priority == ContextPriority.REQUIRED]
@@ -64,10 +64,12 @@ class TestPriorityAssembler:
 
     def test_required_exceeding_budget_raises(self) -> None:
         assembler = PriorityAssembler(budget_tokens=5)  # Very small budget
-        assembler.add(ContextItem(
-            content="This is a very long system prompt that exceeds the tiny budget. " * 10,
-            priority=ContextPriority.REQUIRED,
-        ))
+        assembler.add(
+            ContextItem(
+                content="This is a very long system prompt that exceeds the tiny budget. " * 10,
+                priority=ContextPriority.REQUIRED,
+            )
+        )
         with pytest.raises(ValueError, match="REQUIRED items exceed budget"):
             assembler.assemble()
 
@@ -84,32 +86,34 @@ class TestPriorityAssembler:
     def test_budget_enforcement(self) -> None:
         assembler = PriorityAssembler(budget_tokens=50)
         for i in range(20):
-            assembler.add(ContextItem(
-                content=f"This is context item number {i} with some extra text to use tokens.",
-                priority=ContextPriority.MEDIUM,
-            ))
+            assembler.add(
+                ContextItem(
+                    content=f"This is context item number {i} with some extra text to use tokens.",
+                    priority=ContextPriority.MEDIUM,
+                )
+            )
         result = assembler.assemble()
         assert result.total_tokens <= 50
         assert len(result.excluded_items) > 0
 
     def test_relevance_score_tiebreaker(self) -> None:
         assembler = PriorityAssembler(budget_tokens=200, category_headers=False)
-        assembler.add(ContextItem(
-            content="Less relevant", priority=ContextPriority.HIGH, relevance_score=0.5
-        ))
-        assembler.add(ContextItem(
-            content="More relevant", priority=ContextPriority.HIGH, relevance_score=0.9
-        ))
+        assembler.add(
+            ContextItem(content="Less relevant", priority=ContextPriority.HIGH, relevance_score=0.5)
+        )
+        assembler.add(
+            ContextItem(content="More relevant", priority=ContextPriority.HIGH, relevance_score=0.9)
+        )
         result = assembler.assemble()
         if len(result.included_items) >= 2:
             # Higher relevance should come first among same priority
-            assert result.included_items[0].relevance_score >= result.included_items[1].relevance_score
+            assert (
+                result.included_items[0].relevance_score >= result.included_items[1].relevance_score
+            )
 
     def test_add_many(self) -> None:
         assembler = PriorityAssembler(budget_tokens=4000)
-        items = [
-            ContextItem(content=f"Item {i}") for i in range(5)
-        ]
+        items = [ContextItem(content=f"Item {i}") for i in range(5)]
         assembler.add_many(items)
         result = assembler.assemble()
         assert len(result.included_items) == 5
@@ -138,8 +142,8 @@ class TestPriorityAssembler:
     def test_inclusion_rate(self) -> None:
         assembler = PriorityAssembler(budget_tokens=50)
         for i in range(10):
-            assembler.add(ContextItem(
-                content=f"Item {i} with some padding text to consume tokens."
-            ))
+            assembler.add(
+                ContextItem(content=f"Item {i} with some padding text to consume tokens.")
+            )
         result = assembler.assemble()
         assert 0.0 < result.inclusion_rate < 1.0

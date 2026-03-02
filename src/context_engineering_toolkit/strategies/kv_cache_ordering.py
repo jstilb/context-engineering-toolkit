@@ -33,7 +33,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Optional
 
 
 class CacheLayer(IntEnum):
@@ -43,13 +42,13 @@ class CacheLayer(IntEnum):
     Items are ordered by cache stability: most stable content first.
     """
 
-    SYSTEM_PROMPT = 0        # Always first — maximum cache reuse
-    TOOL_DEFINITIONS = 1     # Static per deployment
-    BACKGROUND_DOCUMENTS = 2 # Static per session
-    FEW_SHOT_EXAMPLES = 3    # Static per task
-    RETRIEVED_CONTEXT = 4    # Per-query, moderate reuse
-    CONVERSATION_HISTORY = 5 # Grows each turn
-    CURRENT_MESSAGE = 6      # Always unique, never cached
+    SYSTEM_PROMPT = 0  # Always first — maximum cache reuse
+    TOOL_DEFINITIONS = 1  # Static per deployment
+    BACKGROUND_DOCUMENTS = 2  # Static per session
+    FEW_SHOT_EXAMPLES = 3  # Static per task
+    RETRIEVED_CONTEXT = 4  # Per-query, moderate reuse
+    CONVERSATION_HISTORY = 5  # Grows each turn
+    CURRENT_MESSAGE = 6  # Always unique, never cached
 
 
 @dataclass
@@ -196,7 +195,7 @@ class KVCacheOrdering:
         )
 
     @classmethod
-    def from_dict(cls, content_by_layer: dict[str, str]) -> "KVCacheOrdering":
+    def from_dict(cls, content_by_layer: dict[str, str]) -> KVCacheOrdering:
         """Create a KVCacheOrdering pre-loaded with content.
 
         Args:
@@ -233,6 +232,8 @@ class KVCacheOrdering:
         ratio = ordered_ctx.cache_efficiency_ratio
         lines.append(f"Cache efficiency: {ratio:.1%} of tokens cacheable")
         lines.append(f"Cacheable: {ordered_ctx.estimated_cacheable_tokens} tokens")
-        lines.append(f"Variable:  {ordered_ctx.total_tokens - ordered_ctx.estimated_cacheable_tokens} tokens")
+        lines.append(
+            f"Variable:  {ordered_ctx.total_tokens - ordered_ctx.estimated_cacheable_tokens} tokens"
+        )
 
         return "\n".join(lines)

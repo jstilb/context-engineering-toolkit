@@ -1,7 +1,5 @@
 """Tests for the retention benchmark module."""
 
-import pytest
-
 from src.benchmarks.retention import RetentionBenchmark, RetentionResult
 
 
@@ -40,8 +38,7 @@ class TestRetentionBenchmark:
 
     def test_partial_retention(self) -> None:
         compressed = (
-            "The Transformer architecture was introduced in 2017. "
-            "GPT-4 achieves 86.4% on MMLU."
+            "The Transformer architecture was introduced in 2017. " "GPT-4 achieves 86.4% on MMLU."
         )
         result = self.benchmark.evaluate(self.original, compressed)
         assert 0.0 < result.key_term_retention <= 1.0

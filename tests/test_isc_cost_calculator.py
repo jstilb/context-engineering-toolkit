@@ -7,8 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
@@ -19,10 +17,16 @@ class TestISC2288CostCalculator:
         """cost command exits 0 with valid inputs."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "100000",
-                "--tokens-per-doc", "8000",
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "100000",
+                "--tokens-per-doc",
+                "8000",
+                "--profile",
+                "claude-sonnet",
             ],
             capture_output=True,
             text=True,
@@ -34,10 +38,16 @@ class TestISC2288CostCalculator:
         """cost --json-output includes tokens_saved_per_request, monthly costs, and ROI."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "100000",
-                "--tokens-per-doc", "8000",
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "100000",
+                "--tokens-per-doc",
+                "8000",
+                "--profile",
+                "claude-sonnet",
                 "--json-output",
             ],
             capture_output=True,
@@ -56,10 +66,16 @@ class TestISC2288CostCalculator:
         """tokens_saved_per_request is positive (optimized < naive)."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "50000",
-                "--tokens-per-doc", "5000",
-                "--profile", "gpt-4o",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "50000",
+                "--tokens-per-doc",
+                "5000",
+                "--profile",
+                "gpt-4o",
                 "--json-output",
             ],
             capture_output=True,
@@ -68,18 +84,24 @@ class TestISC2288CostCalculator:
         )
         assert proc.returncode == 0
         data = json.loads(proc.stdout)
-        assert data["tokens_saved_per_request"] > 0, (
-            f"tokens_saved_per_request should be positive, got {data['tokens_saved_per_request']}"
-        )
+        assert (
+            data["tokens_saved_per_request"] > 0
+        ), f"tokens_saved_per_request should be positive, got {data['tokens_saved_per_request']}"
 
     def test_cost_optimized_less_than_naive(self) -> None:
         """Optimized monthly cost is strictly less than naive cost."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "100000",
-                "--tokens-per-doc", "8000",
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "100000",
+                "--tokens-per-doc",
+                "8000",
+                "--profile",
+                "claude-sonnet",
                 "--json-output",
             ],
             capture_output=True,
@@ -88,18 +110,24 @@ class TestISC2288CostCalculator:
         )
         assert proc.returncode == 0
         data = json.loads(proc.stdout)
-        assert data["monthly_optimized_cost_usd"] < data["monthly_naive_cost_usd"], (
-            "Optimized cost should be less than naive cost"
-        )
+        assert (
+            data["monthly_optimized_cost_usd"] < data["monthly_naive_cost_usd"]
+        ), "Optimized cost should be less than naive cost"
 
     def test_cost_roi_is_positive(self) -> None:
         """ROI percentage is positive."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "200000",
-                "--tokens-per-doc", "10000",
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "200000",
+                "--tokens-per-doc",
+                "10000",
+                "--profile",
+                "claude-sonnet",
                 "--json-output",
             ],
             capture_output=True,
@@ -108,18 +136,22 @@ class TestISC2288CostCalculator:
         )
         assert proc.returncode == 0
         data = json.loads(proc.stdout)
-        assert data["roi_percentage"] > 0.0, (
-            f"ROI should be positive, got {data['roi_percentage']}"
-        )
+        assert data["roi_percentage"] > 0.0, f"ROI should be positive, got {data['roi_percentage']}"
 
     def test_cost_pricing_references_2026(self) -> None:
         """JSON output references 2026 pricing source."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "100000",
-                "--tokens-per-doc", "8000",
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "100000",
+                "--tokens-per-doc",
+                "8000",
+                "--profile",
+                "claude-sonnet",
                 "--json-output",
             ],
             capture_output=True,
@@ -129,18 +161,24 @@ class TestISC2288CostCalculator:
         assert proc.returncode == 0
         data = json.loads(proc.stdout)
         pricing_source = data.get("model_pricing_source", "")
-        assert "2026" in pricing_source, (
-            f"Pricing source should reference 2026, got: {pricing_source}"
-        )
+        assert (
+            "2026" in pricing_source
+        ), f"Pricing source should reference 2026, got: {pricing_source}"
 
     def test_cost_gemini_profile_works(self) -> None:
         """cost command works with gemini-2.0-flash profile."""
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", "1000000",
-                "--tokens-per-doc", "50000",
-                "--profile", "gemini-2.0-flash",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                "1000000",
+                "--tokens-per-doc",
+                "50000",
+                "--profile",
+                "gemini-2.0-flash",
                 "--json-output",
             ],
             capture_output=True,
@@ -158,10 +196,16 @@ class TestISC2288CostCalculator:
         # claude-sonnet: $3.00/million input tokens, 35% compression ratio
         proc = subprocess.run(
             [
-                sys.executable, "-m", "src.cli", "cost",
-                "--volume", str(volume),
-                "--tokens-per-doc", str(tokens_per_doc),
-                "--profile", "claude-sonnet",
+                sys.executable,
+                "-m",
+                "src.cli",
+                "cost",
+                "--volume",
+                str(volume),
+                "--tokens-per-doc",
+                str(tokens_per_doc),
+                "--profile",
+                "claude-sonnet",
                 "--json-output",
             ],
             capture_output=True,

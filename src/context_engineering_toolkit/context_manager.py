@@ -6,7 +6,10 @@ other integrations that need clean setup/teardown semantics.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.tokens.counter import ModelFamily
 
 
 class ContextEngineeringToolkit:
@@ -31,15 +34,15 @@ class ContextEngineeringToolkit:
         self,
         model: str = "gpt-4o",
         budget: int = 4096,
-        profile_dir: Optional[str] = None,
+        profile_dir: str | None = None,
     ) -> None:
         self.model = model
         self.budget = budget
         self.profile_dir = profile_dir
-        self._profile: Optional[dict[str, Any]] = None
+        self._profile: dict[str, Any] | None = None
         self._active = False
 
-    def __enter__(self) -> "ContextEngineeringToolkit":
+    def __enter__(self) -> ContextEngineeringToolkit:
         """Initialize toolkit and load model profile."""
         self._load_profile()
         self._active = True
@@ -55,14 +58,15 @@ class ContextEngineeringToolkit:
         if self.profile_dir is None:
             return
 
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         profile_path = Path(self.profile_dir) / f"{self.model}.yaml"
         if profile_path.exists():
             self._profile = yaml.safe_load(profile_path.read_text())
 
-    def compress(self, text: str, target_tokens: Optional[int] = None) -> str:
+    def compress(self, text: str, target_tokens: int | None = None) -> str:
         """Compress text using the configured model's optimal compression ratio.
 
         Args:
@@ -74,7 +78,7 @@ class ContextEngineeringToolkit:
             Compressed text.
         """
         from src.compression.extractive import ExtractiveSummarizer
-        from src.tokens.counter import ModelFamily, TokenCounter
+        from src.tokens.counter import TokenCounter
 
         model_family = self._resolve_model_family()
         counter = TokenCounter(model_family)
@@ -98,8 +102,7 @@ class ContextEngineeringToolkit:
         Returns:
             Assembled context string within budget.
         """
-        from src.assembly.priority import PriorityAssembler, ContextItem, ContextPriority
-        from src.tokens.counter import ModelFamily
+        from src.assembly.priority import ContextItem, ContextPriority, PriorityAssembler
 
         model_family = self._resolve_model_family()
         assembler = PriorityAssembler(budget_tokens=self.budget, model=model_family)
@@ -119,7 +122,7 @@ class ContextEngineeringToolkit:
         result = assembler.assemble()
         return result.assembled_text
 
-    def _resolve_model_family(self) -> "ModelFamily":
+    def _resolve_model_family(self) -> ModelFamily:
         """Resolve model name to ModelFamily enum."""
         from src.tokens.counter import ModelFamily
 

@@ -1,14 +1,11 @@
 """Integration tests for the full context engineering pipeline."""
 
-import pytest
-
+from src.assembly.priority import ContextItem, ContextPriority, PriorityAssembler
+from src.benchmarks.retention import RetentionBenchmark
 from src.compression.extractive import ExtractiveSummarizer
 from src.compression.truncation import SmartTruncator, TruncationStrategy
-from src.assembly.priority import ContextItem, ContextPriority, PriorityAssembler
+from src.tokens.budget import BudgetPriority, TokenBudget
 from src.tokens.counter import ModelFamily, TokenCounter
-from src.tokens.budget import TokenBudget, BudgetPriority
-from src.benchmarks.retention import RetentionBenchmark
-
 
 # A realistic document for integration testing.
 SAMPLE_DOCUMENT = """
@@ -96,38 +93,41 @@ class TestEndToEndAssembly:
         )
 
         # System prompt (required)
-        assembler.add(ContextItem(
-            content="You are a helpful AI assistant. Answer based on the provided context.",
-            priority=ContextPriority.REQUIRED,
-            category="system",
-        ))
+        assembler.add(
+            ContextItem(
+                content="You are a helpful AI assistant. Answer based on the provided context.",
+                priority=ContextPriority.REQUIRED,
+                category="system",
+            )
+        )
 
         # RAG results (high priority, ordered by relevance)
         chunks = SAMPLE_DOCUMENT.split("\n\n")
         for i, chunk in enumerate(chunks):
             if chunk.strip():
-                assembler.add(ContextItem(
-                    content=chunk.strip(),
-                    priority=ContextPriority.HIGH,
-                    source=f"doc_chunk_{i}",
-                    relevance_score=1.0 - (i * 0.15),
-                    category="retrieved_context",
-                ))
+                assembler.add(
+                    ContextItem(
+                        content=chunk.strip(),
+                        priority=ContextPriority.HIGH,
+                        source=f"doc_chunk_{i}",
+                        relevance_score=1.0 - (i * 0.15),
+                        category="retrieved_context",
+                    )
+                )
 
         # Chat history (medium priority)
-        assembler.add(ContextItem(
-            content="User: What is RAG?\nAssistant: RAG stands for Retrieval-Augmented Generation.",
-            priority=ContextPriority.MEDIUM,
-            category="chat_history",
-        ))
+        assembler.add(
+            ContextItem(
+                content="User: What is RAG?\nAssistant: RAG stands for Retrieval-Augmented Generation.",
+                priority=ContextPriority.MEDIUM,
+                category="chat_history",
+            )
+        )
 
         result = assembler.assemble()
 
         # System prompt must be included
-        assert any(
-            i.priority == ContextPriority.REQUIRED
-            for i in result.included_items
-        )
+        assert any(i.priority == ContextPriority.REQUIRED for i in result.included_items)
 
         # Budget respected
         assert result.total_tokens <= 500
@@ -141,11 +141,10 @@ class TestEndToEndAssembly:
 
         # Plan the budget
         budget = TokenBudget(total_budget=4000, response_reserve=1000, overhead_per_section=10)
+        budget.add_section("system", "System prompt", 15, priority=BudgetPriority.CRITICAL)
         budget.add_section(
-            "system", "System prompt", 15, priority=BudgetPriority.CRITICAL
-        )
-        budget.add_section(
-            "context", "RAG results",
+            "context",
+            "RAG results",
             counter.count(SAMPLE_DOCUMENT).token_count,
             priority=BudgetPriority.HIGH,
         )
@@ -158,7 +157,9 @@ class TestEndToEndAssembly:
         if context_section.over_budget:
             # Need to compress
             summarizer = ExtractiveSummarizer(model=ModelFamily.GPT4O)
-            compressed = summarizer.compress(SAMPLE_DOCUMENT, target_tokens=context_section.max_tokens)
+            compressed = summarizer.compress(
+                SAMPLE_DOCUMENT, target_tokens=context_section.max_tokens
+            )
             compressed_tokens = counter.count(compressed).token_count
             assert compressed_tokens <= context_section.max_tokens + 10
 
